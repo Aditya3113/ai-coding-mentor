@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "AI Coding Mentor",
+    "version": "1.0.0",
+    "description": "Your Socratic AI coding coach for competitive programming.",
+    "permissions": [
+      "sidePanel",
+      "activeTab",
+      "scripting",
+      "storage"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    },
+    "action": {
+      "default_title": "Open Mentor Workspace"
+    }
+  }
