@@ -1,3 +1,3 @@
 chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionIconClick: true })
+  .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
