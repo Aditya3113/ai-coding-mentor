@@ -1,16 +1,20 @@
-console.log("AI Coding Mentor: Content script injected successfully!");
+console.log("AI Coding Mentor: Content script active!");
 
-function getPageContext() {
-    const pageTitle = document.title;
+function extractProblemContext() {
     const url = window.location.href;
+    const rawTitle = document.title;
+    const cleanTitle = rawTitle.split('-')[0].trim(); 
     
-    console.log("Mentor Context Grabbed:");
-    console.log("- Title:", pageTitle);
-    console.log("- URL:", url);
-    
-    return { title: pageTitle, url: url };
+    chrome.runtime.sendMessage({
+        action: "PROBLEM_DETECTED",
+        payload: {
+            platform: "LeetCode",
+            title: cleanTitle,
+            url: url
+        }
+    });
+
+    console.log("Context broadcasted:", cleanTitle);
 }
 
-window.addEventListener('load', () => {
-    getPageContext();
-});
+setTimeout(extractProblemContext, 3000);
