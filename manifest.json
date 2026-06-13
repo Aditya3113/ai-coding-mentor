@@ -17,5 +17,15 @@
     },
     "action": {
       "default_title": "Open Mentor Workspace"
-    }
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "*://leetcode.com/problems/*",
+          "*://*.codeforces.com/*",
+          "*://www.codechef.com/*"
+        ],
+        "js": ["content.js"]
+      }
+    ]
   }
