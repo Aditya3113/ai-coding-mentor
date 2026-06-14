@@ -35,22 +35,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function fetchProblemContext() {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
             const activeTab = tabs[0];
-            if (!activeTab || !activeTab.id) return;
+            
+            if (!activeTab || !activeTab.id || !activeTab.url.includes("leetcode.com/problems/")) {
+                return;
+            }
 
             chrome.tabs.sendMessage(
                 activeTab.id, 
                 { action: "GET_PROBLEM" }, 
                 (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.log("Not on a supported coding page.");
-                        return;
-                    }
+                    if (chrome.runtime.lastError) return;
                     
                     if (response) {
                         chatContainer.innerHTML = ''; 
-                        appendMessage(`👀 I see you are working on: ${response.title}. What's your initial thought process?`, false);
+                        
+                        console.log("Extracted Code:\n", response.code);
+
+                        appendMessage(`👀 I see you are working on: ${response.title}.`, false);
+                        
+                        if (response.code.includes("class Solution") || response.code.length > 20) {
+                            appendMessage("I've read your current code. What part of the logic are you stuck on?", false);
+                        } else {
+                            appendMessage("I see an empty editor. What's your initial thought process?", false);
+                        }
                         
                         if (statusIndicator) {
                             statusIndicator.textContent = "Connected: LeetCode";

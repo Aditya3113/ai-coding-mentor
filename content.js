@@ -5,10 +5,20 @@ function getProblemContext() {
     const rawTitle = document.title;
     const cleanTitle = rawTitle.split('-')[0].trim(); 
     
+    let userCode = "Code editor not found or empty.";
+    const codeElements = document.querySelectorAll('.view-line');
+    
+    if (codeElements.length > 0) {
+        userCode = Array.from(codeElements)
+            .map(line => line.textContent)
+            .join('\n');
+    }
+
     return {
         platform: "LeetCode",
         title: cleanTitle,
-        url: url
+        url: url,
+        code: userCode
     };
 }
 
