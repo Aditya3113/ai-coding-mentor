@@ -1,20 +1,21 @@
-console.log("AI Coding Mentor: Content script active!");
+console.log("AI Coding Mentor: Content script active and waiting for requests!");
 
-function extractProblemContext() {
+function getProblemContext() {
     const url = window.location.href;
     const rawTitle = document.title;
     const cleanTitle = rawTitle.split('-')[0].trim(); 
     
-    chrome.runtime.sendMessage({
-        action: "PROBLEM_DETECTED",
-        payload: {
-            platform: "LeetCode",
-            title: cleanTitle,
-            url: url
-        }
-    });
-
-    console.log("Context broadcasted:", cleanTitle);
+    return {
+        platform: "LeetCode",
+        title: cleanTitle,
+        url: url
+    };
 }
 
-setTimeout(extractProblemContext, 3000);
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "GET_PROBLEM") {
+        console.log("Side Panel requested context. Sending data...");
+        sendResponse(getProblemContext());
+    }
+    return true; 
+});

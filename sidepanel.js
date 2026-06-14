@@ -34,19 +34,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    
-    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-        if (message.action === "PROBLEM_DETECTED") {
-            const data = message.payload;
-            
-            chatContainer.innerHTML = ''; 
-            
-            appendMessage(`👀 I see you are working on: ${data.title}. What's your initial thought process?`, false);
-            
-            if (statusIndicator) {
-                statusIndicator.textContent = "Connected: LeetCode";
-                statusIndicator.style.color = "#28a745";
-            }
-        }
-    });
+    function fetchProblemContext() {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const activeTab = tabs[0];
+            if (!activeTab || !activeTab.id) return;
+
+            chrome.tabs.sendMessage(
+                activeTab.id, 
+                { action: "GET_PROBLEM" }, 
+                (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log("Not on a supported coding page.");
+                        return;
+                    }
+                    
+                    if (response) {
+                        chatContainer.innerHTML = ''; 
+                        appendMessage(`👀 I see you are working on: ${response.title}. What's your initial thought process?`, false);
+                        
+                        if (statusIndicator) {
+                            statusIndicator.textContent = "Connected: LeetCode";
+                            statusIndicator.style.color = "#28a745"; 
+                        }
+                    }
+                }
+            );
+        });
+    }
+
+    fetchProblemContext();
 });
