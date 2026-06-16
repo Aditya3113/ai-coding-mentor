@@ -9,6 +9,11 @@
       "scripting",
       "storage"
     ],
+    "host_permissions": [
+    "*://*.leetcode.com/*",
+    "*://*.codeforces.com/*",
+    "*://*.codechef.com/*"
+    ],
     "background": {
       "service_worker": "background.js"
     },
