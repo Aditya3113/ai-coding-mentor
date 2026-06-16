@@ -63,15 +63,46 @@ document.addEventListener('DOMContentLoaded', () => {
         return item;
     }
 
-    function loadProblemData(title) {
-        const data = problemDatabase[title];
+    const DB_URL = "https://gist.githubusercontent.com/Aditya3113/e9b2068537f70685ba4f260001128bc9/raw/54ac2e4760d0b75aec8871e189d6dec4974339c2/prep-mentor-db.json";
+
+    async function getDatabase() {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
+                const now = new Date().getTime();
+                const oneDay = 24 * 60 * 60 * 1000; 
+
+                if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
+                    resolve(result.problemDatabase);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(DB_URL);
+                    const freshData = await response.json();
+                    chrome.storage.local.set({ 'problemDatabase': freshData, 'lastFetch': now });
+                    resolve(freshData);
+                } catch (error) {
+                    resolve(result.problemDatabase || null); 
+                }
+            });
+        });
+    }
+
+    async function loadProblemData(title) {
+        const db = await getDatabase();
+        
+        if (!db) {
+            idleState.innerHTML = `<p style="font-size: 13px;">Error loading database. Please check your internet connection.</p>`;
+            return;
+        }
+
+        const data = db[title];
 
         if (data) {
             idleState.style.display = 'none';
             dashboardState.style.display = 'flex';
             headerTitle.textContent = title;
 
-            // Difficulty badge
             if (data.difficulty) {
                 difficultyBadge.textContent = data.difficulty;
                 difficultyBadge.className = `difficulty-badge ${data.difficulty}`;
@@ -81,11 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             startTimer(data.timeLimit);
-
             targetTime.textContent  = data.targetTime;
             targetSpace.textContent = data.targetSpace;
 
-            // Companies
             const freeCompany  = data.companies[0];
             const hiddenCount  = data.companies.length - 1;
             companyTags.innerHTML = `
@@ -96,20 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // Hints — one nested accordion per hint
+            // Restore Nested Accordions for Hints
             hintsContainer.innerHTML = '';
             data.hints.forEach((hint, i) => {
-                hintsContainer.appendChild(
-                    buildNestedAccordion(`Hint ${i + 1}`, hint)
-                );
+                hintsContainer.appendChild(buildNestedAccordion(`Hint ${i + 1}`, hint));
             });
             hintCount.textContent = `0/${data.hints.length}`;
 
-            // Track open count for badge
+            // Logic to track opened hints
             hintsContainer.querySelectorAll('.nested-accordion-header').forEach(h => {
                 h.addEventListener('click', () => {
-                    // count after toggle (toggle happens via delegation before this fires,
-                    // but classList.toggle fires in delegation so we use setTimeout 0)
                     setTimeout(() => {
                         const opened = hintsContainer.querySelectorAll('.nested-accordion-item.active').length;
                         hintCount.textContent = `${opened}/${data.hints.length}`;
@@ -117,17 +142,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Edge Cases — one nested accordion per case
+            // Restore Nested Accordions for Edge Cases
             edgeCasesContainer.innerHTML = '';
             data.edgeCases.forEach((ec, i) => {
-                edgeCasesContainer.appendChild(
-                    buildNestedAccordion(`Case ${i + 1}`, `<code style="font-family:monospace;font-size:12px;">${ec}</code>`)
-                );
+                edgeCasesContainer.appendChild(buildNestedAccordion(`Case ${i + 1}`, `<code style="font-family:monospace;font-size:12px; color: var(--accent);">${ec}</code>`));
             });
 
         } else {
             headerTitle.textContent = title;
-            idleState.innerHTML = `<p style="font-size: 13px;">Tracking activated for <b>${title}</b>.<br><br>Data for this problem is not in the mock database.</p>`;
+            dashboardState.style.display = 'none';
+            idleState.style.display = 'block';
+            idleState.innerHTML = `<p style="font-size: 13px;">Tracking activated for <b>${title}</b>.<br><br>Data for this problem is not in the cloud database yet.</p>`;
         }
     }
 
@@ -146,4 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     fetchContext();
+
+    // --- NEW: Bulletproof SPA Detector using Chrome APIs ---
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (changeInfo.url && changeInfo.url.includes("leetcode.com/problems/")) {
+            
+            dashboardState.style.display = 'none';
+            idleState.style.display = 'block';
+            idleState.innerHTML = `<p style="font-size: 13px;">Loading new problem...</p>`;
+            
+            setTimeout(fetchContext, 2000);
+        }
+    });
+
 });

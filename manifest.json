@@ -4,10 +4,10 @@
     "version": "1.0.0",
     "description": "Your Socratic AI coding coach for competitive programming.",
     "permissions": [
-      "sidePanel",
-      "activeTab",
-      "scripting",
-      "storage"
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage"
     ],
     "host_permissions": [
     "*://*.leetcode.com/*",
