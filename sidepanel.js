@@ -1,13 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Top-level accordion toggle
     document.querySelectorAll('.accordion-header').forEach(header => {
         header.addEventListener('click', () => {
             header.parentElement.classList.toggle('active');
         });
     });
 
-    // Nested accordion toggle (delegated)
     document.addEventListener('click', (e) => {
         const nestedHeader = e.target.closest('.nested-accordion-header');
         if (nestedHeader) {
@@ -21,11 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const difficultyBadge = document.getElementById('difficultyBadge');
     const pressureTimer   = document.getElementById('pressureTimer');
 
-    const companyTags       = document.getElementById('companyTags');
-    const targetTime        = document.getElementById('targetTime');
-    const targetSpace       = document.getElementById('targetSpace');
-    const hintsContainer    = document.getElementById('hintsContainer');
-    const hintCount         = document.getElementById('hintCount');
+    const companyTags        = document.getElementById('companyTags');
+    const targetTime         = document.getElementById('targetTime');
+    const targetSpace        = document.getElementById('targetSpace');
+    const hintsContainer     = document.getElementById('hintsContainer');
+    const hintCount          = document.getElementById('hintCount');
     const edgeCasesContainer = document.getElementById('edgeCasesContainer');
 
     let timerInterval = null;
@@ -119,20 +117,55 @@ document.addEventListener('DOMContentLoaded', () => {
             const hiddenCount  = data.companies.length - 1;
             companyTags.innerHTML = `
                 <div class="tag-free">${freeCompany}</div>
-                <div class="tag-locked" title="Pay ₹50 to unlock!">
+                <div class="tag-locked" id="unlockCompaniesBtn" title="Sign in to unlock premium companies!">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                   +${hiddenCount}
                 </div>
             `;
 
-            // Restore Nested Accordions for Hints
+            const unlockBtn = document.getElementById('unlockCompaniesBtn');
+            if (unlockBtn) {
+                unlockBtn.addEventListener('click', async () => {
+                    console.log("Unlock button clicked. Attempting login...");
+                    unlockBtn.innerHTML = `Loading...`;
+                    
+                    if (typeof window.signInWithGoogle === "function") {
+                        const user = await window.signInWithGoogle();
+                        
+                        if (user) {
+                            unlockBtn.innerHTML = `Checking access...`;
+                            
+                            if (typeof window.checkUserPremium === "function") {
+                                const isPremium = await window.checkUserPremium(user.uid);
+                                
+                                if (isPremium) {
+                                    const allCompaniesHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                                    companyTags.innerHTML = allCompaniesHTML;
+                                } else {
+                                    unlockBtn.innerHTML = `Pay ₹50 to Unlock`;
+                                    unlockBtn.style.background = "#ff9800";
+                                    unlockBtn.style.color = "#000";
+                                    alert("Hi " + user.displayName.split(' ')[0] + "! Please pay ₹50 to unlock premium companies. (Payment gateway coming soon!)");
+                                }
+                            } else {
+                                console.error("Firestore checkUserPremium function missing.");
+                                unlockBtn.innerHTML = `+${hiddenCount}`;
+                            }
+                        } else {
+                            unlockBtn.innerHTML = `+${hiddenCount}`;
+                        }
+                    } else {
+                        console.error("Firebase auth.js is not loaded properly.");
+                    }
+                });
+            }
+
             hintsContainer.innerHTML = '';
             data.hints.forEach((hint, i) => {
                 hintsContainer.appendChild(buildNestedAccordion(`Hint ${i + 1}`, hint));
             });
             hintCount.textContent = `0/${data.hints.length}`;
 
-            // Logic to track opened hints
             hintsContainer.querySelectorAll('.nested-accordion-header').forEach(h => {
                 h.addEventListener('click', () => {
                     setTimeout(() => {
@@ -142,7 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
 
-            // Restore Nested Accordions for Edge Cases
             edgeCasesContainer.innerHTML = '';
             data.edgeCases.forEach((ec, i) => {
                 edgeCasesContainer.appendChild(buildNestedAccordion(`Case ${i + 1}`, `<code style="font-family:monospace;font-size:12px; color: var(--accent);">${ec}</code>`));
@@ -159,7 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function fetchContext() {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             const activeTab = tabs[0];
-            if (!activeTab || !activeTab.id || !activeTab.url.includes("leetcode.com/problems/")) return;
+            
+            if (!activeTab || !activeTab.id || !activeTab.url || !activeTab.url.includes("leetcode.com/problems/")) {
+                return;
+            }
 
             chrome.tabs.sendMessage(activeTab.id, { action: "GET_PROBLEM" }, (response) => {
                 if (chrome.runtime.lastError) return;
@@ -172,16 +207,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchContext();
 
-    // --- NEW: Bulletproof SPA Detector using Chrome APIs ---
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.url && changeInfo.url.includes("leetcode.com/problems/")) {
-            
-            dashboardState.style.display = 'none';
-            idleState.style.display = 'block';
-            idleState.innerHTML = `<p style="font-size: 13px;">Loading new problem...</p>`;
-            
-            setTimeout(fetchContext, 2000);
+    chrome.runtime.onMessage.addListener((message) => {
+        if (message.action === "SPA_URL_CHANGED") {
+            fetchContext();
         }
     });
-
 });
