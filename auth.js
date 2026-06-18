@@ -88,3 +88,23 @@ async function checkUserPremium(uid) {
 window.signInWithGoogle = signInWithGoogle;
 window.checkUserPremium = checkUserPremium;
 window.signOut = () => app.auth().signOut();
+
+// NEW: Upgrade user to Premium
+async function upgradeUserToPremium(uid) {
+    try {
+        console.log("Upgrading user to premium in database...");
+        await app.firestore().collection('users').doc(uid).update({ 
+            premium: true 
+        });
+        return true;
+    } catch (error) {
+        console.error("Error upgrading user:", error);
+        return false;
+    }
+}
+
+// Add the new export to the bottom block
+window.signInWithGoogle = signInWithGoogle;
+window.checkUserPremium = checkUserPremium;
+window.upgradeUserToPremium = upgradeUserToPremium; // Add this line!
+window.signOut = () => app.auth().signOut();
