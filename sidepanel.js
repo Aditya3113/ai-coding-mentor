@@ -1,47 +1,129 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Top-level accordion toggle
-    document.querySelectorAll('.accordion-header').forEach(header => {
-        header.addEventListener('click', () => {
-            header.parentElement.classList.toggle('active');
-        });
-    });
+    // --- GLOBAL AUTH STATE & DROPDOWN LOGIC ---
+    let globalUser = null;
+    let globalIsPremium = false;
+    const authProfileBtn = document.getElementById('authProfileBtn');
+    const profileDropdown = document.getElementById('profileDropdown');
+    const dropdownEmail = document.getElementById('dropdownEmail');
+    const signOutBtn = document.getElementById('signOutBtn');
 
-    // Nested accordion toggle (delegated)
+    async function initAuth(providedUser = undefined) {
+        if (providedUser !== undefined) {
+            globalUser = providedUser;
+        } else if (typeof window.getCurrentUser === 'function') {
+            globalUser = await window.getCurrentUser();
+        }
+
+        if (globalUser) {
+            authProfileBtn.style.background = "#2ea043"; 
+            authProfileBtn.style.color = "#fff";
+            authProfileBtn.innerHTML = globalUser.email ? globalUser.email.charAt(0).toUpperCase() : "U";
+            authProfileBtn.title = "Account Menu";
+            
+            dropdownEmail.textContent = globalUser.email || "Premium User";
+            
+            globalIsPremium = await window.checkUserPremium(globalUser.uid);
+            fetchContext(); 
+        } else {
+            authProfileBtn.style.background = "#30363d";
+            authProfileBtn.style.color = "#8b949e";
+            authProfileBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+            authProfileBtn.title = "Sign In";
+            if (profileDropdown) profileDropdown.style.display = "none";
+            globalIsPremium = false;
+        }
+    }
+
+    if (authProfileBtn) {
+        authProfileBtn.addEventListener('click', async (e) => {
+            e.stopPropagation(); 
+            if (globalUser) {
+                profileDropdown.style.display = profileDropdown.style.display === "block" ? "none" : "block";
+            } else {
+                authProfileBtn.innerHTML = "...";
+                if (typeof window.signInWithGoogle === 'function') {
+                    try {
+                        const newUser = await window.signInWithGoogle();
+                        if (newUser) {
+                            await initAuth(newUser); 
+                        } else {
+                            await initAuth(null); 
+                        }
+                    } catch(err) {
+                        await initAuth(null);
+                    }
+                }
+            }
+        });
+    }
+
     document.addEventListener('click', (e) => {
-        const nestedHeader = e.target.closest('.nested-accordion-header');
-        if (nestedHeader) {
-            nestedHeader.parentElement.classList.toggle('active');
+        if (profileDropdown && profileDropdown.style.display === "block") {
+            if (!e.target.closest('#profileContainer')) {
+                profileDropdown.style.display = "none";
+            }
         }
     });
 
-    // Navigation Tabs & Containers
+    if (signOutBtn) {
+        signOutBtn.addEventListener('click', async (e) => {
+            e.stopPropagation(); 
+            const confirmOut = confirm("Are you sure you want to sign out?");
+            if (confirmOut && typeof window.signOut === 'function') {
+                signOutBtn.innerText = "Signing out...";
+                await window.signOut(); 
+                
+                globalUser = null;
+                globalIsPremium = false;
+                
+                profileDropdown.style.display = "none";
+                signOutBtn.innerText = "Sign Out";
+                
+                authProfileBtn.style.background = "#30363d";
+                authProfileBtn.style.color = "#8b949e";
+                authProfileBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+                authProfileBtn.title = "Sign In";
+                
+                fetchContext(); 
+            }
+        });
+    }
+
+    initAuth(); 
+
+    // --- ACCORDION LOGIC (EVENT DELEGATION FOR DYNAMIC TABS) ---
+    document.addEventListener('click', (e) => {
+        const header = e.target.closest('.accordion-header');
+        if (header) {
+            header.parentElement.classList.toggle('active');
+        }
+    });
+
+    // --- UI ELEMENTS ---
     const tabActive = document.getElementById('tabActive');
     const tabCompany = document.getElementById('tabCompany');
+    const navTabsContainer = document.querySelector('.nav-tabs');
     const activeProblemContainer = document.getElementById('activeProblemContainer');
     const companyPrepState = document.getElementById('companyPrepState');
 
-    // Active Problem UI Elements
     const idleState       = document.getElementById('idleState');
+    const lockdownState   = document.getElementById('lockdownState');
     const dashboardState  = document.getElementById('dashboardState');
     const headerTitle     = document.getElementById('headerTitle');
     const difficultyBadge = document.getElementById('difficultyBadge');
     
-    // Timer UI Elements
     const pressureTimer   = document.getElementById('pressureTimer');
     const timerInput      = document.getElementById('timerInput');
     const timerToggleBtn  = document.getElementById('timerToggleBtn');
     const timerResetBtn   = document.getElementById('timerResetBtn');
 
-    // Dashboard Data Elements
     const companyTags        = document.getElementById('companyTags');
     const targetTime         = document.getElementById('targetTime');
     const targetSpace        = document.getElementById('targetSpace');
-    const hintsContainer     = document.getElementById('hintsContainer');
-    const hintCount          = document.getElementById('hintCount');
-    const edgeCasesContainer = document.getElementById('edgeCasesContainer');
+    const dynamicHintsContainer = document.getElementById('dynamicHintsContainer');
+    const dynamicEdgeCasesContainer = document.getElementById('dynamicEdgeCasesContainer');
 
-    // Company Wise Dashboard Elements
     const companySelect = document.getElementById('companySelect');
     const topicSelect = document.getElementById('topicSelect');
     const sortSelect = document.getElementById('sortSelect');
@@ -59,12 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         minutes = minutes < 10 ? "0" + minutes : minutes;
         seconds = seconds < 10 ? "0" + seconds : seconds;
         pressureTimer.textContent = minutes + ":" + seconds;
-
-        if (timerSecondsRemaining < 300) { 
-            pressureTimer.style.color = '#cb2431'; 
-        } else {
-            pressureTimer.style.color = '#eff1f6';
-        }
+        pressureTimer.style.color = (timerSecondsRemaining < 300) ? '#cb2431' : '#eff1f6';
     }
 
     function handleTimerTick() {
@@ -112,20 +189,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function buildNestedAccordion(label, content) {
+    // --- DYNAMIC TOP-LEVEL ACCORDION GENERATOR ---
+    function createTopLevelAccordion(title, content, iconSvg) {
         const item = document.createElement('div');
-        item.className = 'nested-accordion-item';
+        item.className = 'accordion-item';
         item.innerHTML = `
-            <div class="nested-accordion-header">
-                <span>${label}</span>
-                <svg class="nested-chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            <div class="accordion-header">
+                <div class="header-left">
+                    ${iconSvg}
+                    <span>${title}</span>
+                </div>
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </div>
-            <div class="nested-accordion-content">${content}</div>
+            <div class="accordion-content">${content}</div>
         `;
         return item;
     }
 
-    // --- DATABASE LOGIC ---
     const DB_URL = "https://gist.githubusercontent.com/Aditya3113/e9b2068537f70685ba4f260001128bc9/raw/b85731c6a20fbf94b835d750a8f8fb2d3b02eaa5/prep-mentor-db.json";
 
     async function getDatabase() {
@@ -133,12 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
                 const now = new Date().getTime();
                 const oneDay = 24 * 60 * 60 * 1000; 
-
                 if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
                     resolve(result.problemDatabase);
                     return;
                 }
-
                 try {
                     const response = await fetch(DB_URL);
                     const freshData = await response.json();
@@ -151,14 +229,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: Reset to Idle State ---
     function resetToIdleState() {
         dashboardState.style.display = 'none';
+        lockdownState.style.display = 'none';
         idleState.style.display = 'block';
-        idleState.innerHTML = `<p>Waiting for LeetCode problem...</p>`;
+        if (navTabsContainer) navTabsContainer.style.display = 'flex';
         headerTitle.textContent = "Prep Dashboard";
         difficultyBadge.style.display = 'none';
-        
         clearInterval(timerInterval);
         isTimerRunning = false;
         if (timerToggleBtn) timerToggleBtn.textContent = "Start";
@@ -166,23 +243,33 @@ document.addEventListener('DOMContentLoaded', () => {
         pressureTimer.style.color = '#eff1f6';
     }
 
+    function triggerLockdownState() {
+        dashboardState.style.display = 'none';
+        idleState.style.display = 'none';
+        companyPrepState.style.display = 'none';
+        lockdownState.style.display = 'block'; 
+        if (navTabsContainer) navTabsContainer.style.display = 'none';
+        headerTitle.textContent = "Restricted Area";
+        difficultyBadge.style.display = 'none';
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        pressureTimer.textContent = "--:--";
+        pressureTimer.style.color = '#8b949e';
+    }
+
     async function loadProblemData(title) {
         const db = await getDatabase();
-        
         if (!db) {
-            idleState.innerHTML = `<p style="font-size: 13px;">Error loading database. Please check your internet connection.</p>`;
+            idleState.innerHTML = `<p style="font-size: 13px;">Error loading database.</p>`;
             return;
         }
-
         const data = db[title];
 
         if (data) {
-            // Auto-switch to the Active Problem tab whenever a problem is loaded
-            if (activeProblemContainer.style.display === 'none') {
-                tabActive.click();
-            }
-
+            if (activeProblemContainer.style.display === 'none') tabActive.click();
             idleState.style.display = 'none';
+            lockdownState.style.display = 'none';
+            if (navTabsContainer) navTabsContainer.style.display = 'flex';
             dashboardState.style.display = 'flex';
             headerTitle.textContent = title;
 
@@ -197,11 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.timeLimit) {
                 const defaultMinutes = Math.floor(data.timeLimit / 60);
                 if (timerInput) timerInput.value = defaultMinutes;
-                
                 clearInterval(timerInterval);
                 isTimerRunning = false;
                 if (timerToggleBtn) timerToggleBtn.textContent = "Start";
-                
                 timerSecondsRemaining = data.timeLimit;
                 updateTimerDisplay();
             }
@@ -212,7 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const freeCompany  = data.companies && data.companies[0] ? data.companies[0] : "Standard";
             const hiddenCount  = data.companies ? (data.companies.length - 1) : 0;
             
-            if (hiddenCount > 0) {
+            if (globalIsPremium) {
+                companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+            } else if (hiddenCount > 0) {
                 companyTags.innerHTML = `
                     <div class="tag-free">${freeCompany}</div>
                     <div class="tag-locked" id="unlockCompaniesBtn" title="Sign in to unlock premium companies!">
@@ -220,165 +307,190 @@ document.addEventListener('DOMContentLoaded', () => {
                       +${hiddenCount}
                     </div>
                 `;
+
+                const unlockBtn = document.getElementById('unlockCompaniesBtn');
+                unlockBtn.addEventListener('click', async () => {
+                    unlockBtn.innerHTML = `Loading...`;
+                    let user = globalUser; 
+                    if (!user && typeof window.signInWithGoogle === "function") {
+                        user = await window.signInWithGoogle();
+                        if (user) await initAuth(user); 
+                    }
+                    if (user) {
+                        unlockBtn.innerHTML = `Checking access...`;
+                        const isPremium = await window.checkUserPremium(user.uid);
+                        if (isPremium) {
+                            globalIsPremium = true; 
+                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                        } else {
+                            unlockBtn.style.display = "none";
+                            const paymentContainer = document.createElement('div');
+                            paymentContainer.style.width = "100%";
+                            paymentContainer.style.marginTop = "12px";
+                            paymentContainer.style.display = "flex";
+                            paymentContainer.style.flexDirection = "column";
+                            paymentContainer.style.gap = "8px";
+                            paymentContainer.style.padding = "12px";
+                            paymentContainer.style.background = "rgba(255, 152, 0, 0.05)";
+                            paymentContainer.style.border = "1px solid #ff9800";
+                            paymentContainer.style.borderRadius = "6px";
+                            paymentContainer.innerHTML = `
+                                <div style="font-size:12px; color:#8b949e; text-align:center; font-weight:500;">Premium Lifetime Unlock</div>
+                                <input type="text" id="promoInput" placeholder="PROMO CODE (Optional)" style="padding:8px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px; text-transform:uppercase; text-align:center; font-family:monospace; outline:none;">
+                                <button id="payActionBtn" style="padding:10px; background:#ff9800; color:#000; border:none; border-radius:4px; font-weight:bold; cursor:pointer; transition: background 0.2s;">Proceed to Pay</button>
+                            `;
+                            companyTags.parentElement.appendChild(paymentContainer);
+                            const payActionBtn = document.getElementById('payActionBtn');
+                            const promoInput = document.getElementById('promoInput');
+                            let currentOrderId = null;
+
+                            payActionBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation(); 
+                                if (payActionBtn.innerText === "Verify Payment") {
+                                    payActionBtn.innerText = "Verifying...";
+                                    try {
+                                        const res = await fetch('http://localhost:3000/verify-order', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ order_id: currentOrderId })
+                                        });
+                                        const vData = await res.json();
+                                        if (vData.success) {
+                                            await window.upgradeUserToPremium(user.uid);
+                                            globalIsPremium = true; 
+                                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                                            paymentContainer.remove(); 
+                                        } else {
+                                            payActionBtn.innerText = "Verify Payment";
+                                            alert("Payment not completed yet.");
+                                        }
+                                    } catch (err) { alert("Verification error."); }
+                                    return;
+                                }
+
+                                payActionBtn.innerText = "Connecting...";
+                                try {
+                                    const bodyData = { promo_code: promoInput.value.trim() };
+                                    const response = await fetch('http://localhost:3000/create-order', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(bodyData)
+                                    });
+                                    const apiData = await response.json();
+                                    if (apiData.error) {
+                                        alert(apiData.error); 
+                                        payActionBtn.innerText = "Proceed to Pay";
+                                        return;
+                                    }
+                                    currentOrderId = apiData.order.id;
+                                    chrome.tabs.create({ url: `http://localhost:3000/pay?order_id=${currentOrderId}&amount=${apiData.finalAmount}` });
+                                    payActionBtn.innerText = "Verify Payment";
+                                    payActionBtn.style.background = "#2ea043"; 
+                                    payActionBtn.style.color = "#ffffff";
+                                    promoInput.style.display = "none"; 
+                                } catch (error) {
+                                    payActionBtn.innerText = "Proceed to Pay";
+                                }
+                            });
+                        }
+                    } else {
+                        unlockBtn.innerHTML = `+${hiddenCount}`;
+                    }
+                });
             } else {
                 companyTags.innerHTML = `<div class="tag-free">${freeCompany}</div>`;
             }
 
-            const unlockBtn = document.getElementById('unlockCompaniesBtn');
-            if (unlockBtn) {
-                unlockBtn.addEventListener('click', async () => {
-                    unlockBtn.innerHTML = `Loading...`;
-                    if (typeof window.signInWithGoogle === "function") {
-                        const user = await window.signInWithGoogle();
-                        if (user) {
-                            unlockBtn.innerHTML = `Checking access...`;
-                            if (typeof window.checkUserPremium === "function") {
-                                const isPremium = await window.checkUserPremium(user.uid);
-                                if (isPremium) {
-                                    const allCompaniesHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
-                                    companyTags.innerHTML = allCompaniesHTML;
-                                } else {
-                                    unlockBtn.innerHTML = `Pay ₹50 to Unlock`;
-                                    unlockBtn.style.background = "#ff9800";
-                                    unlockBtn.style.color = "#000";
-
-                                    const payBtn = unlockBtn.cloneNode(true);
-                                    unlockBtn.parentNode.replaceChild(payBtn, unlockBtn);
-
-                                    let currentOrderId = null;
-
-                                    payBtn.addEventListener('click', async () => {
-                                        if (payBtn.innerText === "Verify Payment") {
-                                            payBtn.innerText = "Verifying...";
-                                            try {
-                                                const res = await fetch('http://localhost:3000/verify-order', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ order_id: currentOrderId })
-                                                });
-                                                const vData = await res.json();
-                                                
-                                                if (vData.success) {
-                                                    await window.upgradeUserToPremium(user.uid);
-                                                    const allCompaniesHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
-                                                    companyTags.innerHTML = allCompaniesHTML;
-                                                } else {
-                                                    payBtn.innerText = "Verify Payment";
-                                                    alert("Payment not completed yet. Status: " + vData.status);
-                                                }
-                                            } catch (e) {
-                                                payBtn.innerText = "Verify Payment";
-                                                alert("Error verifying payment with server.");
-                                            }
-                                            return;
-                                        }
-
-                                        payBtn.innerText = "Connecting...";
-                                        try {
-                                            const response = await fetch('http://localhost:3000/create-order', { method: 'POST' });
-                                            const orderData = await response.json();
-                                            currentOrderId = orderData.id;
-                                            
-                                            chrome.tabs.create({ url: `http://localhost:3000/pay?order_id=${currentOrderId}` });
-                                            
-                                            payBtn.innerText = "Verify Payment";
-                                            payBtn.style.background = "#2ea043"; 
-                                            payBtn.style.color = "#ffffff";
-                                        } catch (error) {
-                                            payBtn.innerText = "Pay ₹50 to Unlock";
-                                            alert("Could not connect to payment server. Make sure it is running!");
-                                        }
-                                    });
-                                }
-                            }
-                        } else {
-                            unlockBtn.innerHTML = `+${hiddenCount}`;
-                        }
-                    }
+            // POPULATE TOP LEVEL HINTS
+            dynamicHintsContainer.innerHTML = '';
+            const hintIcon = `<svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.07 1.5 3.5.76.76 1.21 1.5 1.41 2.5"></path></svg>`;
+            if (data.hints && data.hints.length > 0) {
+                data.hints.forEach((hint, i) => {
+                    dynamicHintsContainer.appendChild(createTopLevelAccordion(`Hint ${i + 1}`, hint, hintIcon));
                 });
             }
 
-            hintsContainer.innerHTML = '';
-            data.hints.forEach((hint, i) => {
-                hintsContainer.appendChild(buildNestedAccordion(`Hint ${i + 1}`, hint));
-            });
-            hintCount.textContent = `0/${data.hints.length}`;
-
-            hintsContainer.querySelectorAll('.nested-accordion-header').forEach(h => {
-                h.addEventListener('click', () => {
-                    setTimeout(() => {
-                        const opened = hintsContainer.querySelectorAll('.nested-accordion-item.active').length;
-                        hintCount.textContent = `${opened}/${data.hints.length}`;
-                    }, 0);
+            // POPULATE TOP LEVEL EDGE CASES
+            dynamicEdgeCasesContainer.innerHTML = '';
+            const edgeIcon = `<svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+            if (data.edgeCases && data.edgeCases.length > 0) {
+                data.edgeCases.forEach((ec, i) => {
+                    const formattedEc = `<code style="font-family:monospace;font-size:12px; color: var(--accent);">${ec}</code>`;
+                    dynamicEdgeCasesContainer.appendChild(createTopLevelAccordion(`Edge Case ${i + 1}`, formattedEc, edgeIcon));
                 });
-            });
-
-            edgeCasesContainer.innerHTML = '';
-            data.edgeCases.forEach((ec, i) => {
-                edgeCasesContainer.appendChild(buildNestedAccordion(`Case ${i + 1}`, `<code style="font-family:monospace;font-size:12px; color: var(--accent);">${ec}</code>`));
-            });
+            }
 
         } else {
             headerTitle.textContent = title;
             dashboardState.style.display = 'none';
+            lockdownState.style.display = 'none';
             idleState.style.display = 'block';
             idleState.innerHTML = `<p style="font-size: 13px;">Tracking activated for <b>${title}</b>.<br><br>Data for this problem is not in the cloud database yet.</p>`;
         }
     }
 
-    // --- CONTEXT FETCHING & TAB LISTENERS ---
-    function fetchContext() {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            const activeTab = tabs[0];
-            
-            // If the user switches to a non-LeetCode tab, wipe the dashboard!
-            if (!activeTab || !activeTab.id || !activeTab.url || !activeTab.url.includes("leetcode.com/problems/")) {
+    function processTab(activeTab) {
+        if (activeTab && activeTab.url && activeTab.url.includes("leetcode.com/contest/")) {
+            triggerLockdownState();
+            return;
+        }
+
+        if (!activeTab || !activeTab.id || !activeTab.url || !activeTab.url.includes("leetcode.com/problems/")) {
+            resetToIdleState();
+            return;
+        }
+
+        const match = activeTab.url.match(/leetcode\.com\/problems\/([^/]+)/);
+        const slug = match ? match[1] : null;
+
+        chrome.tabs.sendMessage(activeTab.id, { action: "GET_PROBLEM" }, async (response) => {
+            if (chrome.runtime.lastError || !response || !response.title) {
+                if (slug) {
+                    const db = await getDatabase();
+                    if (db) {
+                        const matchedTitle = Object.keys(db).find(key => {
+                            const expectedUrl = db[key].url || `https://leetcode.com/problems/${key.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
+                            return expectedUrl.includes(slug);
+                        });
+                        if (matchedTitle) {
+                            loadProblemData(matchedTitle);
+                            return;
+                        }
+                    }
+                }
                 resetToIdleState();
                 return;
             }
-
-            chrome.tabs.sendMessage(activeTab.id, { action: "GET_PROBLEM" }, (response) => {
-                if (chrome.runtime.lastError) {
-                    resetToIdleState();
-                    return;
-                }
-                if (response && response.title) {
-                    loadProblemData(response.title);
-                }
-            });
+            loadProblemData(response.title);
         });
     }
 
-    // 1. Fetch on initial load
-    fetchContext();
+    function fetchContext() {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            let activeTab = tabs[0];
+            if (!activeTab) {
+                chrome.tabs.query({ active: true, lastFocusedWindow: true }, (fallbackTabs) => {
+                    if (fallbackTabs[0]) processTab(fallbackTabs[0]);
+                });
+            } else {
+                processTab(activeTab);
+            }
+        });
+    }
 
-    // 2. Listen for URL changes inside a single LeetCode tab (SPA)
     chrome.runtime.onMessage.addListener((message) => {
-        if (message.action === "SPA_URL_CHANGED") {
-            // Slight delay to allow LeetCode DOM to update its title
-            setTimeout(fetchContext, 1000); 
-        }
+        if (message.action === "SPA_URL_CHANGED") setTimeout(fetchContext, 1000); 
     });
-
-    // 3. NEW: Listen for user switching between different Chrome tabs
-    chrome.tabs.onActivated.addListener(() => {
-        fetchContext();
-    });
-
-    // 4. NEW: Listen for a tab fully finishing its loading sequence
+    chrome.tabs.onActivated.addListener(fetchContext);
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.status === 'complete' && tab.active) {
-            fetchContext();
-        }
+        if (changeInfo.status === 'complete' && tab.active) fetchContext();
     });
 
-    // --- TAB NAVIGATION UI LOGIC ---
     tabActive.addEventListener('click', () => {
         tabActive.style.color = '#fff';
         tabActive.style.borderBottom = '2px solid #ff9800';
         tabCompany.style.color = '#8b949e';
         tabCompany.style.borderBottom = 'none';
-        
         activeProblemContainer.style.display = 'block';
         companyPrepState.style.display = 'none';
     });
@@ -388,22 +500,17 @@ document.addEventListener('DOMContentLoaded', () => {
         tabCompany.style.borderBottom = '2px solid #ff9800';
         tabActive.style.color = '#8b949e';
         tabActive.style.borderBottom = 'none';
-        
         activeProblemContainer.style.display = 'none';
         companyPrepState.style.display = 'block';
 
         if (globalDatabaseArray.length === 0) {
             const db = await getDatabase();
             if (db) {
-                globalDatabaseArray = Object.keys(db).map(key => ({
-                    title: key,
-                    ...db[key]
-                }));
+                globalDatabaseArray = Object.keys(db).map(key => ({ title: key, ...db[key] }));
             }
         }
     });
 
-    // --- COMPANY DASHBOARD RENDERING ---
     function renderCompanyQuestions() {
         const selectedCompany = companySelect.value;
         const selectedTopic = topicSelect.value;
@@ -415,20 +522,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.includes(selectedCompany));
-        
-        if (selectedTopic !== "All") {
-            filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
-        }
+        if (selectedTopic !== "All") filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
 
         filtered.sort((a, b) => {
-            if (selectedSort === 'freq-desc') {
-                return (b.frequency || 0) - (a.frequency || 0);
-            } else {
-                const diffWeight = { "Easy": 1, "Medium": 2, "Hard": 3 };
-                const weightA = diffWeight[a.difficulty] || 0;
-                const weightB = diffWeight[b.difficulty] || 0;
-                return selectedSort === 'diff-asc' ? weightA - weightB : weightB - weightA;
-            }
+            if (selectedSort === 'freq-desc') return (b.frequency || 0) - (a.frequency || 0);
+            const diffWeight = { "Easy": 1, "Medium": 2, "Hard": 3 };
+            const weightA = diffWeight[a.difficulty] || 0;
+            const weightB = diffWeight[b.difficulty] || 0;
+            return selectedSort === 'diff-asc' ? weightA - weightB : weightB - weightA;
         });
 
         if (filtered.length === 0) {
@@ -440,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let color = "#00b8a3"; 
             if (q.difficulty === "Medium") color = "#ffc01e"; 
             if (q.difficulty === "Hard") color = "#ff375f"; 
-
             const problemUrl = q.url || `https://leetcode.com/problems/${q.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
 
             return `
@@ -460,9 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     questionList.addEventListener('click', (e) => {
         const clickedItem = e.target.closest('.question-click-item');
-        if (clickedItem && clickedItem.dataset.url) {
-            chrome.tabs.create({ active: true, url: clickedItem.dataset.url });
-        }
+        if (clickedItem && clickedItem.dataset.url) chrome.tabs.create({ active: true, url: clickedItem.dataset.url });
     });
 
     companySelect.addEventListener('change', renderCompanyQuestions);

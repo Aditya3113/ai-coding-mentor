@@ -72,6 +72,39 @@
     .difficulty-badge.Medium { color: var(--diff-medium);  background: rgba(255,161,22,0.1); }
     .difficulty-badge.Hard   { color: var(--diff-hard);   background: rgba(239,71,67,0.1); }
 
+    /* Dropdown UI Lockout */
+    .profile-container {
+      position: relative;
+    }
+    .profile-dropdown {
+      display: none;
+      position: absolute;
+      top: 40px; 
+      right: 0;
+      background-color: #161b22;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+      width: 190px;
+      z-index: 9999;
+    }
+    .dropdown-btn {
+      width: 100%; 
+      text-align: left; 
+      background: transparent; 
+      border: none;
+      color: var(--diff-hard); 
+      padding: 10px 12px; 
+      cursor: pointer;
+      font-size: 13px; 
+      font-weight: 600;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      transition: background-color 0.2s;
+    }
+    .dropdown-btn:hover { background-color: rgba(239, 71, 67, 0.1); }
+
+    /* Accordion */
     .accordion-item {
       background-color: var(--panel-bg);
       border-bottom: 1px solid var(--border);
@@ -110,12 +143,6 @@
     .accordion-item.locked .header-left,
     .accordion-item.locked.active .header-left,
     .accordion-item.locked .accordion-header:hover .header-left { color: var(--paywall); }
-
-    .hint-count-badge {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-left: 2px;
-    }
 
     .chevron {
       width: 16px;
@@ -175,7 +202,6 @@
     .list-item-card:last-child {
       margin-bottom: 0;
     }
-    
     .list-item-card:hover {
       transform: translateX(4px);
       border-color: var(--border);
@@ -207,6 +233,20 @@
     <div class="header-title-group">
       <span class="problem-title" id="headerTitle">Prep Dashboard</span>
       <span class="difficulty-badge" id="difficultyBadge" style="display:none"></span>
+    </div>
+    
+    <div class="profile-container" id="profileContainer">
+        <div id="authProfileBtn" style="width: 28px; height: 28px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b949e; transition: 0.2s; font-weight: bold; font-size: 14px;" title="Sign In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        
+        <div id="profileDropdown" class="profile-dropdown">
+            <div style="padding: 12px; border-bottom: 1px solid var(--border);">
+                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Signed in as</div>
+                <div id="dropdownEmail" style="font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+            </div>
+            <button id="signOutBtn" class="dropdown-btn">Sign Out</button>
+        </div>
     </div>
   </div>
 
@@ -248,6 +288,12 @@
     
     <div id="idleState">
       <p>Waiting for LeetCode problem...</p>
+    </div>
+
+    <div id="lockdownState" style="display: none; text-align: center; padding: 50px 20px; color: #ef4743;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 50px; height: 50px; margin-bottom: 16px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <h2 style="margin: 0 0 10px 0; font-size: 18px;">Contest Mode Active</h2>
+        <p style="color: #8b949e; font-size: 13px; margin: 0;">Extension disabled to enforce fair play.<br>Focus up and good luck!</p>
     </div>
 
     <div id="dashboardState">
@@ -301,33 +347,8 @@
         </div>
       </div>
 
-      <div class="accordion-item">
-        <div class="accordion-header">
-          <div class="header-left">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.07 1.5 3.5.76.76 1.21 1.5 1.41 2.5"></path></svg>
-            <span>Hints</span>
-            <span class="hint-count-badge" id="hintCount">0</span>
-          </div>
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </div>
-        <div class="accordion-content">
-          <div id="hintsContainer"></div>
-        </div>
-      </div>
-
-      <div class="accordion-item">
-        <div class="accordion-header">
-          <div class="header-left">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <span>Edge Cases</span>
-            <span class="hint-count-badge" id="edgeCaseCount">0</span>
-          </div>
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </div>
-        <div class="accordion-content">
-          <div id="edgeCasesContainer"></div>
-        </div>
-      </div>
+      <div id="dynamicHintsContainer"></div>
+      <div id="dynamicEdgeCasesContainer"></div>
 
     </div>
   </div>
