@@ -134,6 +134,182 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTimerRunning = false;
     let globalDatabaseArray = [];
 
+    // --- UI HELPER: PREMIUM COMPANY FORMATTER ---
+    const COMPANY_DISPLAY_NAMES = {
+        "1kosmos": "1Kosmos", "6sense": "6sense", "accelya": "Accelya", "accenture": "Accenture",
+        "accolite": "Accolite", "acko": "ACKO", "acorns": "Acorns", "activision": "Activision",
+        "adobe": "Adobe", "adp": "ADP", "aetion": "Aetion", "affinity": "Affinity", "affirm": "Affirm",
+        "agoda": "Agoda", "airbnb": "Airbnb", "airbus": "Airbus", "airtel": "Airtel",
+        "airwallex": "Airwallex", "akamai": "Akamai", "akuna-capital": "Akuna Capital",
+        "alibaba": "Alibaba", "allincall": "Allincall", "alphonso": "Alphonso", "alten": "Alten",
+        "altimetrik": "Altimetrik", "amadeus": "Amadeus", "amazon": "Amazon", "amd": "AMD",
+        "amdocs": "Amdocs", "american-airlines": "American Airlines", "american-express": "American Express",
+        "amplitude": "Amplitude", "analytics-quotient": "Analytics Quotient", "andela": "Andela",
+        "anduril": "Anduril", "anthropic": "Anthropic", "anyscale": "Anyscale", "aon": "Aon",
+        "apolloio": "Apolloio", "appdynamics": "Appdynamics", "appfolio": "Appfolio", "apple": "Apple",
+        "applied-intuition": "Applied Intuition", "aqr-capital-management": "Aqr Capital Management",
+        "arcesium": "Arcesium", "argo-ai": "Argo Ai", "arista-networks": "Arista Networks", "asana": "Asana",
+        "ascend": "Ascend", "athenahealth": "athenahealth", "atlassian": "Atlassian", "att": "AT&T",
+        "attentive": "Attentive", "audible": "Audible", "auriga": "Auriga", "aurora": "Aurora",
+        "autodesk": "Autodesk", "avalara": "Avalara", "avito": "Avito", "axis-bank": "Axis Bank",
+        "axon": "Axon", "baidu": "Baidu", "bank-of-america": "Bank of America", "barclays": "Barclays",
+        "bcg": "BCG", "bending-spoons": "Bending Spoons", "bill-com": "Bill.com", "bitgo": "BitGo",
+        "blackbuck": "Blackbuck", "blackrock": "BlackRock", "blackstone": "Blackstone", "blend": "Blend",
+        "blinkit": "Blinkit", "bloomberg": "Bloomberg", "bloomreach": "Bloomreach", "blue-origin": "Blue Origin",
+        "bnp-paribas": "BNP Paribas", "bny-mellon": "BNY Mellon", "boeing": "Boeing", "bolt": "Bolt",
+        "bookingcom": "Booking.com", "box": "Box", "bp": "BP", "braze": "Braze",
+        "bridgewater-associates": "Bridgewater Associates", "brillio": "Brillio", "broadcom": "Broadcom",
+        "browserstack": "Browserstack", "bt-group": "Bt Group", "buyhatke": "Buyhatke", "bytedance": "ByteDance",
+        "c3-ai": "C3 AI", "cadence": "Cadence", "canonical": "Canonical", "canva": "Canva",
+        "capgemini": "Capgemini", "capital-one": "Capital One", "careem": "Careem", "cars24": "Cars24",
+        "carwale": "Carwale", "cashfree": "Cashfree", "caterpillar": "Caterpillar", "cerner": "Cerner",
+        "chalo": "Chalo", "chargebee": "Chargebee", "checkpoint": "Checkpoint", "chewy": "Chewy",
+        "chime": "Chime", "chubb": "Chubb", "ciena": "Ciena", "circle": "Circle", "cisco": "Cisco",
+        "citadel": "Citadel", "citi": "Citi", "citrix": "Citrix", "clari": "Clari", "cleartrip": "Cleartrip",
+        "clevertap": "Clevertap", "cloudera": "Cloudera", "cloudflare": "Cloudflare", "clutter": "Clutter",
+        "cme-group": "Cme Group", "cockroach-labs": "Cockroach Labs", "code-studio": "Code Studio",
+        "coditas": "Coditas", "cognizant": "Cognizant", "cohesity": "Cohesity", "coinbase": "Coinbase",
+        "coindcx": "CoinDCX", "coinswitch-kuber": "Coinswitch Kuber", "comcast": "Comcast",
+        "commvault": "Commvault", "compass": "Compass", "confluent": "Confluent", "couchbase": "Couchbase",
+        "coupa": "Coupa", "coupang": "Coupang", "coursera": "Coursera", "coveo": "Coveo", "cred": "CRED",
+        "criteo": "Criteo", "crowdstrike": "CrowdStrike", "cruise-automation": "Cruise Automation", "ctc": "Ctc",
+        "curefit": "Curefit", "cvent": "Cvent", "cyntexa": "Cyntexa", "cyware": "Cyware", "dailyhunt": "Dailyhunt",
+        "darwinbox": "Darwinbox", "dassault-sysetmes": "Dassault Sysetmes", "dataart": "Dataart",
+        "databricks": "Databricks", "datadog": "Datadog", "dataminr": "Dataminr", "de-shaw": "D. E. Shaw",
+        "deepmind": "DeepMind", "delhivery": "Delhivery", "deliveroo": "Deliveroo", "dell": "Dell",
+        "deloitte": "Deloitte", "deltax": "Deltax", "deutsche-bank": "Deutsche Bank", "devrev": "Devrev",
+        "dialpad": "Dialpad", "directi": "Directi", "discord": "Discord", "discovery": "Discovery",
+        "disney": "Disney", "dji": "Dji", "docusign": "Docusign", "doordash": "DoorDash", "dp-world": "Dp World",
+        "drawbridge": "Drawbridge", "dream11": "Dream11", "dropbox": "Dropbox", "druva": "Druva", "drw": "Drw",
+        "dtcc": "Dtcc", "dunzo": "Dunzo", "duolingo": "Duolingo", "earnin": "Earnin", "ebay": "eBay",
+        "edelweiss": "Edelweiss", "electronic-arts": "Electronic Arts", "elitmus": "Elitmus", "envoy": "Envoy",
+        "epam-systems": "EPAM Systems", "epic-games": "Epic Games", "epic-systems": "Epic Systems",
+        "epifi": "Epifi", "equinix": "Equinix", "ericsson": "Ericsson", "etsy": "Etsy", "exl": "Exl",
+        "expedia": "Expedia", "ey": "EY", "f5-networks": "F5 Networks", "factset": "Factset", "faire": "Faire",
+        "fallible": "Fallible", "fanatics": "Fanatics", "fast": "Fast", "fastenal": "Fastenal", "fico": "Fico",
+        "fidelity": "Fidelity", "fidessa": "Fidessa", "figma": "Figma", "fiverr": "Fiverr", "fivetran": "Fivetran",
+        "flatiron-health": "Flatiron Health", "fleetx": "Fleetx", "flexera": "Flexera", "flexport": "Flexport",
+        "flipkart": "Flipkart", "fortinet": "Fortinet", "forusall": "Forusall", "fourkites": "Fourkites",
+        "fpt": "Fpt", "fractal-analytics": "Fractal Analytics", "freecharge": "Freecharge",
+        "freshworks": "Freshworks", "fynd": "Fynd", "gainsight": "Gainsight", "gameskraft": "Gameskraft",
+        "garena": "Garena", "garmin": "Garmin", "gartner": "Gartner", "ge-digital": "Ge Digital",
+        "ge-healthcare": "Ge Healthcare", "geico": "Geico", "general-electric": "General Electric",
+        "general-motors": "General Motors", "gilt-groupe": "Gilt Groupe", "github": "GitHub",
+        "glassdoor": "Glassdoor", "globallogic": "Globallogic", "glovo": "Glovo", "godaddy": "GoDaddy",
+        "gojek": "Gojek", "goldman-sachs": "Goldman Sachs", "google": "Google", "gopuff": "Gopuff",
+        "goto": "Goto", "grab": "Grab", "grammarly": "Grammarly", "graviton": "Graviton", "groupon": "Groupon",
+        "groww": "Groww", "grubhub": "Grubhub", "gsa-capital": "Gsa Capital", "gsn-games": "Gsn Games",
+        "guidewire": "Guidewire", "gusto": "Gusto", "harness": "Harness", "hashedin": "Hashedin", "hbo": "HBO",
+        "hcl": "HCL", "helix": "Helix", "highspot": "Highspot", "hilabs": "Hilabs", "hive": "Hive", "honey": "Honey",
+        "honeywell": "Honeywell", "hopper": "Hopper", "hotstar": "Hotstar", "houzz": "Houzz", "hp": "HP",
+        "hpe": "HPE", "hrt": "Hrt", "hsbc": "HSBC", "htc": "HTC", "huawei": "Huawei", "hubspot": "Hubspot",
+        "hulu": "Hulu", "ibm": "IBM", "iit-bombay": "IIT Bombay", "imc": "Imc",
+        "impact-analytics": "Impact Analytics", "impetus": "Impetus", "increff": "Increff", "indeed": "Indeed",
+        "info-edge": "Info Edge", "informatica": "Informatica", "infosys": "Infosys", "inmobi": "InMobi",
+        "innovaccer": "Innovaccer", "instabase": "Instabase", "instacart": "Instacart", "intel": "Intel",
+        "interactive-brokers": "Interactive Brokers", "intercom": "Intercom", "intuit": "Intuit", "ivp": "Ivp",
+        "ixigo": "Ixigo", "ixl": "Ixl", "jane-street": "Jane Street", "jd": "Jd", "jeavio": "Jeavio",
+        "jingchi": "Jingchi", "jio": "Jio", "josh-technology": "Josh Technology", "jpmorgan": "JPMorgan",
+        "jtg": "Jtg", "jump-trading": "Jump Trading", "juspay": "Juspay", "kakao": "Kakao", "karat": "Karat",
+        "kickdrum": "Kickdrum", "kla-tencor": "Kla Tencor", "kla": "Kla",
+        "kotak-mahindra-bank": "Kotak Mahindra Bank", "kpmg": "KPMG", "larsen-toubro": "Larsen & Toubro",
+        "leap-motion": "Leap Motion", "lendingkart": "Lendingkart", "lenskart": "Lenskart",
+        "lg-electronics": "LG Electronics", "liberty-mutual": "Liberty Mutual", "liftoff": "Liftoff",
+        "lime": "Lime", "line": "Line", "linkedin": "LinkedIn", "liveramp": "Liveramp", "livspace": "Livspace",
+        "lowe": "Lowe", "lti": "Lti", "lucid": "Lucid", "luxoft": "Luxoft", "lyft": "Lyft",
+        "machine-zone": "Machine Zone", "machinezone": "Machinezone", "maersk": "Maersk",
+        "makemytrip": "MakeMyTrip", "mapbox": "Mapbox", "maq-software": "Maq Software", "marqeta": "Marqeta",
+        "mastercard": "Mastercard", "mathworks": "Mathworks", "mcafee": "McAfee", "mcdonalds": "McDonald's",
+        "mckinsey": "McKinsey", "medianet": "Medianet", "meesho": "Meesho", "meituan": "Meituan",
+        "mercari": "Mercari", "meta": "Meta", "micro1": "Micro1", "microsoft": "Microsoft",
+        "microstrategy": "Microstrategy", "millennium": "Millennium", "mindtickle": "Mindtickle",
+        "mindtree": "Mindtree", "mishipay": "Mishipay", "mitsogo": "Mitsogo", "mixpanel": "Mixpanel",
+        "mobileye": "Mobileye", "mobisy": "Mobisy", "moengage": "Moengage", "moloco": "Moloco",
+        "moneylion": "Moneylion", "mongodb": "Mongodb", "morgan-stanley": "Morgan Stanley", "motive": "Motive",
+        "moveworks": "Moveworks", "mphasis": "Mphasis", "msci": "Msci", "murex": "Murex", "mykaarma": "Mykaarma",
+        "myntra": "Myntra", "nagarro": "Nagarro", "nasdaq": "Nasdaq",
+        "national-instruments": "National Instruments",
+        "national-payments-coorperation-india": "National Payments Coorperation India", "natwest": "Natwest",
+        "navan": "Navan", "naver": "Naver", "navi": "Navi", "ncr": "Ncr", "nerdwallet": "Nerdwallet",
+        "netapp": "Netapp", "netcracker-technology": "Netcracker Technology", "netease": "Netease",
+        "netflix": "Netflix", "netskope": "Netskope", "netsuite": "Netsuite", "newsbreak": "Newsbreak",
+        "nextdoor": "Nextdoor", "nextjump": "Nextjump", "niantic": "Niantic", "nielsen": "Nielsen",
+        "nike": "Nike", "nokia": "Nokia", "noon": "Noon", "nordstrom": "Nordstrom", "notion": "Notion",
+        "npci": "Npci", "nuro": "Nuro", "nutanix": "Nutanix", "nvidia": "Nvidia", "nykaa": "Nykaa",
+        "observeai": "Observeai", "odoo": "Odoo", "okta": "Okta", "okx": "Okx", "ola": "Ola", "olx": "Olx",
+        "openai": "OpenAI", "opentext": "Opentext", "oppo": "Oppo", "optiver": "Optiver", "optum": "Optum",
+        "oracle": "Oracle", "oscar-health": "Oscar Health", "otterai": "Otterai", "oyo": "OYO", "ozon": "Ozon",
+        "palantir": "Palantir", "palo-alto-networks": "Palo Alto Networks", "park": "Park", "patreon": "Patreon",
+        "paycom": "Paycom", "paypal": "PayPal", "paypay": "Paypay", "paytm": "Paytm", "payu": "PayU",
+        "peak6": "Peak6", "pega": "Pega", "peloton": "Peloton", "persistent-systems": "Persistent Systems",
+        "philips": "Philips", "phonepe": "PhonePe", "pickrr": "Pickrr", "pinterest": "Pinterest",
+        "plaid": "Plaid", "playsimple": "Playsimple", "pocket-gems": "Pocket Gems", "point72": "Point72",
+        "polar": "Polar", "ponyai": "Ponyai", "pornhub": "Pornhub", "porter": "Porter", "poshmark": "Poshmark",
+        "postman": "Postman", "postmates": "Postmates", "poynt": "Poynt", "practo": "Practo",
+        "publicis-sapient": "Publicis Sapient", "pubmatic": "Pubmatic", "pure-storage": "Pure Storage",
+        "pure": "Pure", "purplle": "Purplle", "pwc": "PwC", "qualcomm": "Qualcomm", "qualtrics": "Qualtrics",
+        "qualys": "Qualys", "quantcast": "Quantcast", "quantiphi": "Quantiphi", "quince": "Quince",
+        "quora": "Quora", "rackspace": "Rackspace", "radius": "Radius", "rakuten": "Rakuten",
+        "rally-health": "Rally Health", "ramp-2": "Ramp 2", "razorpay": "Razorpay", "rbc": "Rbc",
+        "redbus": "Redbus", "reddit": "Reddit", "redfin": "Redfin", "reliance-retails": "Reliance Retails",
+        "remitly": "Remitly", "retailmenot": "Retailmenot", "revolut": "Revolut", "riot-games": "Riot Games",
+        "ripple": "Ripple", "rippling": "Rippling", "rivian": "Rivian", "robinhood": "Robinhood",
+        "roblox": "Roblox", "rokt": "Rokt", "roku": "Roku", "rubrik": "Rubrik", "salesforce": "Salesforce",
+        "sambanova": "Sambanova", "samsara": "Samsara", "samsung": "Samsung", "sap": "SAP",
+        "scale-ai": "Scale Ai", "scaler": "Scaler", "schlumberger": "Schlumberger",
+        "schneider-electric": "Schneider Electric", "schrodinger": "Schrodinger", "sentry": "Sentry",
+        "servicenow": "ServiceNow", "sharechat": "Sharechat", "shift-technology": "Shift Technology",
+        "shipsy": "Shipsy", "shopback": "Shopback", "shopee": "Shopee", "shopify": "Shopify",
+        "shopup": "Shopup", "siemens": "Siemens", "sig": "Sig", "sigmoid": "Sigmoid",
+        "singlestore": "Singlestore", "sixt": "Sixt", "slice": "Slice", "smartnews": "Smartnews",
+        "smartsheet": "Smartsheet", "snapchat": "Snapchat", "snapdeal": "Snapdeal", "snowflake": "Snowflake",
+        "societe-generale": "Societe Generale", "sofi": "Sofi", "softwire": "Softwire", "sonatus": "Sonatus",
+        "sony": "Sony", "soti": "Soti", "soundhound": "Soundhound", "spacex": "SpaceX", "spinny": "Spinny",
+        "splunk": "Splunk", "spotify": "Spotify", "sprinklr": "Sprinklr", "square": "Square",
+        "squarepoint-capital": "Squarepoint Capital", "squarespace": "Squarespace", "stackadapt": "Stackadapt",
+        "stackline": "Stackline", "starbucks": "Starbucks", "state-farm": "State Farm", "strava": "Strava",
+        "stripe": "Stripe", "sumologic": "Sumologic", "swiggy": "Swiggy", "syfe": "Syfe", "symantec": "Symantec",
+        "synopsys": "Synopsys", "ta-digital": "Ta Digital", "tableau": "Tableau", "tanium": "Tanium",
+        "target": "Target", "tcs": "TCS", "tech-mahindra": "Tech Mahindra", "tekion": "Tekion",
+        "tencent": "Tencent", "teradata": "Teradata", "tesco": "Tesco", "tesla": "Tesla",
+        "texas-instruments": "Texas Instruments", "the-trade-desk": "The Trade Desk",
+        "thomson-reuters": "Thomson Reuters", "thoughtspot": "Thoughtspot", "thoughtworks": "Thoughtworks",
+        "thousandeyes": "Thousandeyes", "thumbtack": "Thumbtack", "tiaa": "Tiaa",
+        "tiger-analytics": "Tiger Analytics", "tiktok": "TikTok", "tinder": "Tinder", "tinkoff": "Tinkoff",
+        "toast": "Toast", "tokopedia": "Tokopedia", "tomtom": "Tomtom", "toptal": "Toptal",
+        "tower-research": "Tower Research", "tracxn": "Tracxn", "traveloka": "Traveloka",
+        "trend-micro": "Trend Micro", "trexquant": "Trexquant", "trilogy": "Trilogy",
+        "tripactions": "Tripactions", "tripadvisor": "Tripadvisor", "triplebyte": "Triplebyte",
+        "turing": "Turing", "turvo": "Turvo", "tusimple": "Tusimple", "twilio": "Twilio", "twitch": "Twitch",
+        "twitter": "Twitter", "two-sigma": "Two Sigma", "uber": "Uber", "ubisoft": "Ubisoft", "ubs": "UBS",
+        "udemy": "Udemy", "uipath": "UiPath", "ukg": "Ukg", "unbxd": "Unbxd", "unity": "Unity",
+        "unstop": "Unstop", "upstart": "Upstart", "urban-company": "Urban Company", "ust": "Ust",
+        "valve": "Valve", "veeva": "Veeva", "verily": "Verily", "veritas": "Veritas", "verizon": "Verizon",
+        "verkada": "Verkada", "viasat": "Viasat", "vimeo": "Vimeo", "virtu": "Virtu", "virtusa": "Virtusa",
+        "visa": "Visa", "vk": "Vk", "vmware": "VMware", "walmart-labs": "Walmart Labs",
+        "warnermedia": "Warnermedia", "wayfair": "Wayfair", "waymo": "Waymo", "wayve": "Wayve",
+        "wealthfront": "Wealthfront", "wells-fargo": "Wells Fargo", "weride": "Weride",
+        "western-digital": "Western Digital", "whatfix": "Whatfix", "whatnot": "Whatnot", "winzo": "Winzo",
+        "wipro": "Wipro", "wise": "Wise", "wish": "Wish", "wissen": "Wissen", "wix": "Wix", "workday": "Workday",
+        "works-applications": "Works Applications", "worldquant": "Worldquant",
+        "woven-by-toyota": "Woven By Toyota", "xing": "Xing", "yahoo": "Yahoo", "yandex": "Yandex",
+        "yatra": "Yatra", "yelp": "Yelp", "yugabyte": "Yugabyte", "zalando": "Zalando", "zappos": "Zappos",
+        "zemoso": "Zemoso", "zendesk": "Zendesk", "zenefits": "Zenefits", "zepto": "Zepto",
+        "zeta-suite": "Zeta Suite", "zeta": "Zeta", "zillow": "Zillow", "zip": "Zip",
+        "ziprecruiter": "Ziprecruiter", "zluri": "Zluri", "zocdoc": "Zocdoc", "zoho": "Zoho", "zomato": "Zomato",
+        "zoom": "Zoom", "zoox": "Zoox", "zopsmart": "Zopsmart", "zs-associates": "Zs Associates",
+        "zscaler": "Zscaler", "zulily": "Zulily"
+    };
+
+    function formatName(str) {
+        if (!str) return "";
+        const lowerStr = str.toLowerCase();
+        if (COMPANY_DISPLAY_NAMES[lowerStr]) {
+            return COMPANY_DISPLAY_NAMES[lowerStr];
+        }
+        return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
     // --- TIMER LOGIC ---
     function updateTimerDisplay() {
         let minutes = parseInt(timerSecondsRemaining / 60, 10);
@@ -206,23 +382,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return item;
     }
 
-    const DB_URL = "https://gist.githubusercontent.com/Aditya3113/e9b2068537f70685ba4f260001128bc9/raw/b85731c6a20fbf94b835d750a8f8fb2d3b02eaa5/prep-mentor-db.json";
+    const DB_URL = "https://raw.githubusercontent.com/Aditya3113/leetcode-database/refs/heads/main/database_min.json";
 
+    // --- ZERO-CACHE GET_DATABASE FUNCTION ---
     async function getDatabase() {
         return new Promise((resolve) => {
             chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
                 const now = new Date().getTime();
-                const oneDay = 24 * 60 * 60 * 1000; 
+                
+                // Set to 0 to FORCE fetch the newest Gist every single time
+                const oneDay = 0; 
+                
                 if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
                     resolve(result.problemDatabase);
                     return;
                 }
                 try {
-                    const response = await fetch(DB_URL);
+                    // Bypass Chrome network cache
+                    const response = await fetch(DB_URL, { cache: 'no-store' });
                     const freshData = await response.json();
+                    
                     chrome.storage.local.set({ 'problemDatabase': freshData, 'lastFetch': now });
                     resolve(freshData);
                 } catch (error) {
+                    console.error("Failed to fetch database:", error);
                     resolve(result.problemDatabase || null); 
                 }
             });
@@ -294,11 +477,13 @@ document.addEventListener('DOMContentLoaded', () => {
             targetTime.textContent  = data.targetTime;
             targetSpace.textContent = data.targetSpace;
 
-            const freeCompany  = data.companies && data.companies[0] ? data.companies[0] : "Standard";
+            // USE FORMATTER HERE
+            const freeCompany  = data.companies && data.companies[0] ? formatName(data.companies[0]) : "Standard";
             const hiddenCount  = data.companies ? (data.companies.length - 1) : 0;
             
             if (globalIsPremium) {
-                companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                // USE FORMATTER HERE
+                companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
             } else if (hiddenCount > 0) {
                 companyTags.innerHTML = `
                     <div class="tag-free">${freeCompany}</div>
@@ -321,7 +506,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const isPremium = await window.checkUserPremium(user.uid);
                         if (isPremium) {
                             globalIsPremium = true; 
-                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                            // USE FORMATTER HERE
+                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
                         } else {
                             unlockBtn.style.display = "none";
                             const paymentContainer = document.createElement('div');
@@ -358,7 +544,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                         if (vData.success) {
                                             await window.upgradeUserToPremium(user.uid);
                                             globalIsPremium = true; 
-                                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${c}</div>`).join('');
+                                            // USE FORMATTER HERE
+                                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
                                             paymentContainer.remove(); 
                                         } else {
                                             payActionBtn.innerText = "Verify Payment";
@@ -507,9 +694,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const db = await getDatabase();
             if (db) {
                 globalDatabaseArray = Object.keys(db).map(key => ({ title: key, ...db[key] }));
+                
+                populateCompanyDropdown(); 
             }
         }
     });
+
+    function populateCompanyDropdown() {
+        const uniqueCompanies = new Set();
+        globalDatabaseArray.forEach(p => {
+            if (p.companies) {
+                p.companies.forEach(c => uniqueCompanies.add(c.toLowerCase()));
+            }
+        });
+
+        const sortedCompanies = Array.from(uniqueCompanies).sort();
+
+        companySelect.innerHTML = `<option value="" disabled selected>Select a Company...</option>`;
+
+        sortedCompanies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company; 
+            option.textContent = formatName(company); 
+            companySelect.appendChild(option);
+        });
+    }
 
     function renderCompanyQuestions() {
         const selectedCompany = companySelect.value;
@@ -524,8 +733,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.includes(selectedCompany));
         if (selectedTopic !== "All") filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
 
+        // NEW: Sort by the specific company's frequency
         filtered.sort((a, b) => {
-            if (selectedSort === 'freq-desc') return (b.frequency || 0) - (a.frequency || 0);
+            if (selectedSort === 'freq-desc') {
+                const freqA = (a.companyFrequencies && a.companyFrequencies[selectedCompany]) ? a.companyFrequencies[selectedCompany] : 0;
+                const freqB = (b.companyFrequencies && b.companyFrequencies[selectedCompany]) ? b.companyFrequencies[selectedCompany] : 0;
+                return freqB - freqA;
+            }
             const diffWeight = { "Easy": 1, "Medium": 2, "Hard": 3 };
             const weightA = diffWeight[a.difficulty] || 0;
             const weightB = diffWeight[b.difficulty] || 0;
@@ -543,6 +757,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (q.difficulty === "Hard") color = "#ff375f"; 
             const problemUrl = q.url || `https://leetcode.com/problems/${q.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
 
+            // NEW: Fetch the specific frequency for the dropdown company selected
+            const rawFreq = q.companyFrequencies ? q.companyFrequencies[selectedCompany] : undefined;
+            const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : 'N/A';
+
             return `
             <div class="list-item-card question-click-item" data-url="${problemUrl}" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -550,7 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span style="color: #eff1f6; font-size: 14px; font-weight: 500;">${q.title}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="color: #8b949e; font-size: 12px;">Freq: ${q.frequency || 'N/A'}</span>
+                    <span style="color: #ff9800; font-size: 12px; font-weight: bold;">Freq: ${displayFreq}</span>
                     <span style="color: ${color}; font-size: 12px; font-weight: bold; width: 50px; text-align: right;">${q.difficulty}</span>
                 </div>
             </div>

@@ -8,7 +8,8 @@
     "tabs",
     "scripting",
     "storage",
-    "identity"
+    "identity",
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://leetcode.com/*"
