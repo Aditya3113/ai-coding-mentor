@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTimerRunning = false;
     let globalDatabaseArray = [];
 
-    // --- NEW CLOUD DATABASE URL ---
+    // --- CLOUD DATABASE URL ---
     const DB_URL = "https://raw.githubusercontent.com/Aditya3113/leetcode-database/refs/heads/main/database_min.json";
 
     // --- ZERO-CACHE DATABASE FETCH ---
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = db[title];
 
         if (data) {
-            // FIXED: Removed the aggressive tab redirect so users stay on Company Prep when clicking links
+            // Respecting the user's tab choice. No forced click to tabActive.
             idleState.style.display = 'none';
             lockdownState.style.display = 'none';
             if (navTabsContainer) navTabsContainer.style.display = 'flex';
@@ -736,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- COMPANY PREP RENDERING ENGINE ---
+    // --- CSS GRID COMPANY PREP RENDERING ENGINE ---
     function renderCompanyQuestions() {
         const selectedCompany = companySelect.value;
         const selectedTopic = topicSelect.value;
@@ -767,28 +767,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        questionList.innerHTML = filtered.map(q => {
+        const headerHtml = `
+            <div style="display: grid; grid-template-columns: 45px 1fr 50px 60px; gap: 10px; align-items: center; padding: 0 12px 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 8px; font-size: 12px; color: #8b949e; font-weight: bold;">
+                <div>ID</div>
+                <div>Problem Title</div>
+                <div style="text-align: right;">Freq</div>
+                <div style="text-align: right;">Diff</div>
+            </div>
+        `;
+
+        const rowsHtml = filtered.map(q => {
             let color = "#00b8a3"; 
             if (q.difficulty === "Medium") color = "#ffc01e"; 
             if (q.difficulty === "Hard") color = "#ff375f"; 
+            
             const problemUrl = q.url || `https://leetcode.com/problems/${q.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
 
             const rawFreq = q.companyFrequencies ? q.companyFrequencies[selectedCompany] : undefined;
-            const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : 'N/A';
+            const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : '-';
 
             return `
-            <div class="list-item-card question-click-item" data-url="${problemUrl}" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #8b949e; font-size: 12px; min-width: 25px;">${q.id || '-'}.</span>
-                    <span style="color: #eff1f6; font-size: 14px; font-weight: 500;">${q.title}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="color: #ff9800; font-size: 12px; font-weight: bold;">Freq: ${displayFreq}</span>
-                    <span style="color: ${color}; font-size: 12px; font-weight: bold; width: 50px; text-align: right;">${q.difficulty}</span>
-                </div>
+            <div class="list-item-card question-click-item" data-url="${problemUrl}" style="cursor: pointer; display: grid; grid-template-columns: 45px 1fr 50px 60px; gap: 10px; align-items: center; width: 100%;">
+                <div style="color: #8b949e; font-size: 12px;">${q.id || '-'}</div>
+                <div style="color: #eff1f6; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${q.title}">${q.title}</div>
+                <div style="color: #ff9800; font-size: 12px; font-weight: bold; text-align: right;">${displayFreq}</div>
+                <div style="color: ${color}; font-size: 12px; font-weight: bold; text-align: right;">${q.difficulty}</div>
             </div>
             `;
         }).join('');
+
+        questionList.innerHTML = headerHtml + rowsHtml;
     }
 
     questionList.addEventListener('click', (e) => {
