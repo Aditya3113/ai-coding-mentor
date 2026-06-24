@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initAuth(); 
 
-    // --- ACCORDION LOGIC (EVENT DELEGATION FOR DYNAMIC TABS) ---
+    // --- ACCORDION LOGIC ---
     document.addEventListener('click', (e) => {
         const header = e.target.closest('.accordion-header');
         if (header) {
@@ -133,6 +133,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let timerSecondsRemaining = 0;
     let isTimerRunning = false;
     let globalDatabaseArray = [];
+
+    // --- NEW CLOUD DATABASE URL ---
+    const DB_URL = "https://raw.githubusercontent.com/Aditya3113/leetcode-database/refs/heads/main/database_min.json";
+
+    // --- ZERO-CACHE DATABASE FETCH ---
+    async function getDatabase() {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
+                const now = new Date().getTime();
+                
+                // Set to 0 to FORCE fetch the newest Database every single time during dev
+                const oneDay = 0; 
+                
+                if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
+                    resolve(result.problemDatabase);
+                    return;
+                }
+                try {
+                    const response = await fetch(DB_URL, { cache: 'no-store' });
+                    const freshData = await response.json();
+                    
+                    chrome.storage.local.set({ 'problemDatabase': freshData, 'lastFetch': now });
+                    resolve(freshData);
+                } catch (error) {
+                    console.error("Failed to fetch database:", error);
+                    resolve(result.problemDatabase || null); 
+                }
+            });
+        });
+    }
 
     // --- UI HELPER: PREMIUM COMPANY FORMATTER ---
     const COMPANY_DISPLAY_NAMES = {
@@ -382,36 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return item;
     }
 
-    const DB_URL = "https://raw.githubusercontent.com/Aditya3113/leetcode-database/refs/heads/main/database_min.json";
-
-    // --- ZERO-CACHE GET_DATABASE FUNCTION ---
-    async function getDatabase() {
-        return new Promise((resolve) => {
-            chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
-                const now = new Date().getTime();
-                
-                // Set to 0 to FORCE fetch the newest Gist every single time
-                const oneDay = 0; 
-                
-                if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
-                    resolve(result.problemDatabase);
-                    return;
-                }
-                try {
-                    // Bypass Chrome network cache
-                    const response = await fetch(DB_URL, { cache: 'no-store' });
-                    const freshData = await response.json();
-                    
-                    chrome.storage.local.set({ 'problemDatabase': freshData, 'lastFetch': now });
-                    resolve(freshData);
-                } catch (error) {
-                    console.error("Failed to fetch database:", error);
-                    resolve(result.problemDatabase || null); 
-                }
-            });
-        });
-    }
-
     function resetToIdleState() {
         dashboardState.style.display = 'none';
         lockdownState.style.display = 'none';
@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = db[title];
 
         if (data) {
-            if (activeProblemContainer.style.display === 'none') tabActive.click();
+            // FIXED: Removed the aggressive tab redirect so users stay on Company Prep when clicking links
             idleState.style.display = 'none';
             lockdownState.style.display = 'none';
             if (navTabsContainer) navTabsContainer.style.display = 'flex';
@@ -477,12 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
             targetTime.textContent  = data.targetTime;
             targetSpace.textContent = data.targetSpace;
 
-            // USE FORMATTER HERE
             const freeCompany  = data.companies && data.companies[0] ? formatName(data.companies[0]) : "Standard";
             const hiddenCount  = data.companies ? (data.companies.length - 1) : 0;
             
             if (globalIsPremium) {
-                // USE FORMATTER HERE
                 companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
             } else if (hiddenCount > 0) {
                 companyTags.innerHTML = `
@@ -506,7 +504,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const isPremium = await window.checkUserPremium(user.uid);
                         if (isPremium) {
                             globalIsPremium = true; 
-                            // USE FORMATTER HERE
                             companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
                         } else {
                             unlockBtn.style.display = "none";
@@ -544,7 +541,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                         if (vData.success) {
                                             await window.upgradeUserToPremium(user.uid);
                                             globalIsPremium = true; 
-                                            // USE FORMATTER HERE
                                             companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
                                             paymentContainer.remove(); 
                                         } else {
@@ -682,6 +678,45 @@ document.addEventListener('DOMContentLoaded', () => {
         companyPrepState.style.display = 'none';
     });
 
+    // --- DYNAMIC DROPDOWN GENERATORS ---
+    function populateCompanyDropdown() {
+        const uniqueCompanies = new Set();
+        globalDatabaseArray.forEach(p => {
+            if (p.companies) {
+                p.companies.forEach(c => uniqueCompanies.add(c.toLowerCase()));
+            }
+        });
+
+        const sortedCompanies = Array.from(uniqueCompanies).sort();
+        companySelect.innerHTML = `<option value="" disabled selected>Select a Company...</option>`;
+
+        sortedCompanies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company; 
+            option.textContent = formatName(company); 
+            companySelect.appendChild(option);
+        });
+    }
+
+    function populateTopicDropdown() {
+        const uniqueTopics = new Set();
+        globalDatabaseArray.forEach(p => {
+            if (p.topics && Array.isArray(p.topics)) {
+                p.topics.forEach(t => uniqueTopics.add(t));
+            }
+        });
+
+        const sortedTopics = Array.from(uniqueTopics).sort();
+        topicSelect.innerHTML = `<option value="All">All Topics</option>`;
+
+        sortedTopics.forEach(topic => {
+            const option = document.createElement('option');
+            option.value = topic; 
+            option.textContent = topic; 
+            topicSelect.appendChild(option);
+        });
+    }
+
     tabCompany.addEventListener('click', async () => {
         tabCompany.style.color = '#fff';
         tabCompany.style.borderBottom = '2px solid #ff9800';
@@ -696,30 +731,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 globalDatabaseArray = Object.keys(db).map(key => ({ title: key, ...db[key] }));
                 
                 populateCompanyDropdown(); 
+                populateTopicDropdown(); 
             }
         }
     });
 
-    function populateCompanyDropdown() {
-        const uniqueCompanies = new Set();
-        globalDatabaseArray.forEach(p => {
-            if (p.companies) {
-                p.companies.forEach(c => uniqueCompanies.add(c.toLowerCase()));
-            }
-        });
-
-        const sortedCompanies = Array.from(uniqueCompanies).sort();
-
-        companySelect.innerHTML = `<option value="" disabled selected>Select a Company...</option>`;
-
-        sortedCompanies.forEach(company => {
-            const option = document.createElement('option');
-            option.value = company; 
-            option.textContent = formatName(company); 
-            companySelect.appendChild(option);
-        });
-    }
-
+    // --- COMPANY PREP RENDERING ENGINE ---
     function renderCompanyQuestions() {
         const selectedCompany = companySelect.value;
         const selectedTopic = topicSelect.value;
@@ -733,7 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.includes(selectedCompany));
         if (selectedTopic !== "All") filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
 
-        // NEW: Sort by the specific company's frequency
         filtered.sort((a, b) => {
             if (selectedSort === 'freq-desc') {
                 const freqA = (a.companyFrequencies && a.companyFrequencies[selectedCompany]) ? a.companyFrequencies[selectedCompany] : 0;
@@ -757,7 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (q.difficulty === "Hard") color = "#ff375f"; 
             const problemUrl = q.url || `https://leetcode.com/problems/${q.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
 
-            // NEW: Fetch the specific frequency for the dropdown company selected
             const rawFreq = q.companyFrequencies ? q.companyFrequencies[selectedCompany] : undefined;
             const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : 'N/A';
 
