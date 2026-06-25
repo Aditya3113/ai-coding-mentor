@@ -90,8 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    initAuth(); 
-
     // --- ACCORDION LOGIC ---
     document.addEventListener('click', (e) => {
         const header = e.target.closest('.accordion-header');
@@ -449,7 +447,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = db[title];
 
         if (data) {
-            // Respecting the user's tab choice. No forced click to tabActive.
             idleState.style.display = 'none';
             lockdownState.style.display = 'none';
             if (navTabsContainer) navTabsContainer.style.display = 'flex';
@@ -725,6 +722,122 @@ document.addEventListener('DOMContentLoaded', () => {
         activeProblemContainer.style.display = 'none';
         companyPrepState.style.display = 'block';
 
+        // --- PREMIUM GATEKEEPER CHECK ---
+        if (!globalIsPremium) {
+            companySelect.disabled = true;
+            topicSelect.disabled = true;
+            sortSelect.disabled = true;
+            
+            questionList.innerHTML = `
+                <div style="padding: 60px 20px; text-align: center; color: #8b949e; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <h3 style="color: #eff1f6; font-size: 16px; margin-bottom: 8px; font-weight: 600;">Premium Feature</h3>
+                    <p style="font-size: 13px; line-height: 1.5; margin-bottom: 24px; max-width: 250px;">Unlock Company Prep to access targeted problem lists, real interview frequencies, and auto-sync.</p>
+                    <button id="prepUpgradeBtn" style="padding: 8px 16px; background: #ff9800; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s;">Unlock Premium</button>
+                </div>
+            `;
+
+            document.getElementById('prepUpgradeBtn').addEventListener('click', async (e) => {
+                const btn = e.target;
+                btn.innerHTML = `Loading...`;
+                let user = globalUser; 
+                
+                if (!user && typeof window.signInWithGoogle === "function") {
+                    user = await window.signInWithGoogle();
+                    if (user) await initAuth(user); 
+                }
+                
+                if (user) {
+                    btn.innerHTML = `Checking access...`;
+                    const isPremium = await window.checkUserPremium(user.uid);
+                    
+                    if (isPremium) {
+                        globalIsPremium = true; 
+                        tabCompany.click(); // Re-trigger tab click to clear lock and render data
+                    } else {
+                        btn.style.display = "none";
+                        const paymentContainer = document.createElement('div');
+                        paymentContainer.style.width = "100%";
+                        paymentContainer.style.maxWidth = "280px";
+                        paymentContainer.style.marginTop = "12px";
+                        paymentContainer.style.display = "flex";
+                        paymentContainer.style.flexDirection = "column";
+                        paymentContainer.style.gap = "8px";
+                        paymentContainer.style.padding = "12px";
+                        paymentContainer.style.background = "rgba(255, 152, 0, 0.05)";
+                        paymentContainer.style.border = "1px solid #ff9800";
+                        paymentContainer.style.borderRadius = "6px";
+                        paymentContainer.innerHTML = `
+                            <div style="font-size:12px; color:#8b949e; text-align:center; font-weight:500;">Premium Lifetime Unlock</div>
+                            <input type="text" id="prepPromoInput" placeholder="PROMO CODE (Optional)" style="padding:8px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px; text-transform:uppercase; text-align:center; font-family:monospace; outline:none;">
+                            <button id="prepPayActionBtn" style="padding:10px; background:#ff9800; color:#000; border:none; border-radius:4px; font-weight:bold; cursor:pointer; transition: background 0.2s;">Proceed to Pay</button>
+                        `;
+                        btn.parentElement.appendChild(paymentContainer);
+                        
+                        const payActionBtn = document.getElementById('prepPayActionBtn');
+                        const promoInput = document.getElementById('prepPromoInput');
+                        let currentOrderId = null;
+
+                        payActionBtn.addEventListener('click', async (payEvent) => {
+                            payEvent.stopPropagation(); 
+                            if (payActionBtn.innerText === "Verify Payment") {
+                                payActionBtn.innerText = "Verifying...";
+                                try {
+                                    const res = await fetch('http://localhost:3000/verify-order', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ order_id: currentOrderId })
+                                    });
+                                    const vData = await res.json();
+                                    if (vData.success) {
+                                        await window.upgradeUserToPremium(user.uid);
+                                        globalIsPremium = true; 
+                                        tabCompany.click(); // Re-trigger tab click to clear lock and render data
+                                    } else {
+                                        payActionBtn.innerText = "Verify Payment";
+                                        alert("Payment not completed yet.");
+                                    }
+                                } catch (err) { alert("Verification error."); }
+                                return;
+                            }
+
+                            payActionBtn.innerText = "Connecting...";
+                            try {
+                                const bodyData = { promo_code: promoInput.value.trim() };
+                                const response = await fetch('http://localhost:3000/create-order', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(bodyData)
+                                });
+                                const apiData = await response.json();
+                                if (apiData.error) {
+                                    alert(apiData.error); 
+                                    payActionBtn.innerText = "Proceed to Pay";
+                                    return;
+                                }
+                                currentOrderId = apiData.order.id;
+                                chrome.tabs.create({ url: `http://localhost:3000/pay?order_id=${currentOrderId}&amount=${apiData.finalAmount}` });
+                                payActionBtn.innerText = "Verify Payment";
+                                payActionBtn.style.background = "#2ea043"; 
+                                payActionBtn.style.color = "#ffffff";
+                                promoInput.style.display = "none"; 
+                            } catch (error) {
+                                payActionBtn.innerText = "Proceed to Pay";
+                            }
+                        });
+                    }
+                } else {
+                    btn.innerHTML = `Unlock Premium`;
+                }
+            });
+            return;
+        }
+
+        // --- PREMIUM FLOW ---
+        companySelect.disabled = false;
+        topicSelect.disabled = false;
+        sortSelect.disabled = false;
+
         if (globalDatabaseArray.length === 0) {
             const db = await getDatabase();
             if (db) {
@@ -732,12 +845,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 populateCompanyDropdown(); 
                 populateTopicDropdown(); 
+                questionList.innerHTML = `<p style="color: #8b949e; text-align: center; font-size: 13px; margin-top: 20px;">Select a company to view problems.</p>`;
             }
+        } else if (!companySelect.value) {
+            questionList.innerHTML = `<p style="color: #8b949e; text-align: center; font-size: 13px; margin-top: 20px;">Select a company to view problems.</p>`;
         }
     });
 
-    // --- CSS GRID COMPANY PREP RENDERING ENGINE ---
-    function renderCompanyQuestions() {
+    // --- CSS GRID COMPANY PREP RENDERING ENGINE (WITH SVG AUTO-SYNC CHECKMARKS & ZEBRA STRIPING) ---
+    async function renderCompanyQuestions() {
+        if (!globalIsPremium) return;
+
         const selectedCompany = companySelect.value;
         const selectedTopic = topicSelect.value;
         const selectedSort = sortSelect.value;
@@ -746,6 +864,10 @@ document.addEventListener('DOMContentLoaded', () => {
             questionList.innerHTML = `<p style="color: #8b949e; text-align: center; font-size: 13px; margin-top: 20px;">Select a company to view problems.</p>`;
             return;
         }
+
+        // Fetch solved problems from storage
+        const storage = await new Promise(resolve => chrome.storage.local.get(['solvedProblems'], resolve));
+        const solvedList = storage.solvedProblems || [];
 
         let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.includes(selectedCompany));
         if (selectedTopic !== "All") filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
@@ -768,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const headerHtml = `
-            <div style="display: grid; grid-template-columns: 45px 1fr 50px 60px; gap: 10px; align-items: center; padding: 0 12px 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 8px; font-size: 12px; color: #8b949e; font-weight: bold;">
+            <div style="display: grid; grid-template-columns: 60px 1fr 50px 60px; gap: 10px; align-items: center; padding: 0 12px 8px 12px; border-bottom: 1px solid #30363d; margin-bottom: 4px; font-size: 12px; color: #8b949e; font-weight: bold;">
                 <div>ID</div>
                 <div>Problem Title</div>
                 <div style="text-align: right;">Freq</div>
@@ -776,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        const rowsHtml = filtered.map(q => {
+        const rowsHtml = filtered.map((q, index) => {
             let color = "#00b8a3"; 
             if (q.difficulty === "Medium") color = "#ffc01e"; 
             if (q.difficulty === "Hard") color = "#ff375f"; 
@@ -786,9 +908,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const rawFreq = q.companyFrequencies ? q.companyFrequencies[selectedCompany] : undefined;
             const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : '-';
 
+            // Auto-Sync SVG Checkmark Logic
+            const isSolved = solvedList.includes(q.title);
+            const successSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="#2ea043" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            const emptySpace = `<div style="width: 14px; flex-shrink: 0;"></div>`;
+            const checkmark = isSolved ? successSvg : emptySpace;
+
+            // Zebra Striping (Alternating row backgrounds)
+            const rowBg = index % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.03)";
+
             return `
-            <div class="list-item-card question-click-item" data-url="${problemUrl}" style="cursor: pointer; display: grid; grid-template-columns: 45px 1fr 50px 60px; gap: 10px; align-items: center; width: 100%;">
-                <div style="color: #8b949e; font-size: 12px;">${q.id || '-'}</div>
+            <div class="question-click-item" data-url="${problemUrl}" style="cursor: pointer; display: grid; grid-template-columns: 60px 1fr 50px 60px; gap: 10px; align-items: center; width: 100%; padding: 8px 12px; background: ${rowBg}; border-radius: 4px;">
+                <div style="color: #eff1f6; font-size: 14px; font-weight: 500; display:flex; align-items:center; gap: 6px;">
+                    ${checkmark} <span>${q.id || '-'}</span>
+                </div>
                 <div style="color: #eff1f6; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${q.title}">${q.title}</div>
                 <div style="color: #ff9800; font-size: 12px; font-weight: bold; text-align: right;">${displayFreq}</div>
                 <div style="color: ${color}; font-size: 12px; font-weight: bold; text-align: right;">${q.difficulty}</div>
@@ -807,4 +940,38 @@ document.addEventListener('DOMContentLoaded', () => {
     companySelect.addEventListener('change', renderCompanyQuestions);
     topicSelect.addEventListener('change', renderCompanyQuestions);
     sortSelect.addEventListener('change', renderCompanyQuestions);
+
+    // --- HISTORICAL AUTO-SYNC ENGINE ---
+    async function syncHistoricalLeetCodeData() {
+        try {
+            const response = await fetch('https://leetcode.com/api/problems/algorithms/');
+            if (!response.ok) return; 
+            
+            const data = await response.json();
+            
+            const solvedTitles = data.stat_status_pairs
+                .filter(p => p.status === 'ac')
+                .map(p => p.stat.question__title);
+
+            if (solvedTitles.length > 0) {
+                chrome.storage.local.get(['solvedProblems'], (result) => {
+                    const existing = result.solvedProblems || [];
+                    const merged = Array.from(new Set([...existing, ...solvedTitles]));
+                    
+                    chrome.storage.local.set({ solvedProblems: merged }, () => {
+                        console.log(`AI Coding Mentor: Synced ${merged.length} historical problems.`);
+                        if (companyPrepState.style.display === 'block' && globalIsPremium) {
+                            renderCompanyQuestions();
+                        }
+                    });
+                });
+            }
+        } catch (err) {
+            console.log("Could not sync historical data. Ensure you are logged into LeetCode.");
+        }
+    }
+
+    initAuth();
+    syncHistoricalLeetCodeData();
+
 });
