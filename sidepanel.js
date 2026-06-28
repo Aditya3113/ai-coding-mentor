@@ -132,26 +132,48 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTimerRunning = false;
     let globalDatabaseArray = [];
 
-    // --- CLOUD DATABASE URL ---
-    const DB_URL = "https://raw.githubusercontent.com/Aditya3113/leetcode-database/refs/heads/main/database_min.json";
 
-    // --- ZERO-CACHE DATABASE FETCH ---
+    // --- SECURE CLOUD DATABASE FETCH ---
     async function getDatabase() {
         return new Promise((resolve) => {
             chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
                 const now = new Date().getTime();
-                
-                // Set to 0 to FORCE fetch the newest Database every single time during dev
-                const oneDay = 0; 
+                const oneDay = 0; // Keep at 0 for dev testing
                 
                 if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
                     resolve(result.problemDatabase);
                     return;
                 }
                 try {
-                    const response = await fetch(DB_URL, { cache: 'no-store' });
+                    let idToken = "";
+                    if (globalUser && typeof globalUser.getIdToken === 'function') {
+                        idToken = await globalUser.getIdToken(true); 
+                    } else if (typeof window.getUserToken === 'function') {
+                        idToken = await window.getUserToken();
+                    }
+
+                    if (!idToken) {
+                        console.error("No auth token available for database fetch.");
+                        resolve(result.problemDatabase || null);
+                        return;
+                    }
+
+                    const response = await fetch('http://localhost:3000/api/premium-database', { 
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        cache: 'no-store' 
+                    });
+
+                    if (!response.ok) {
+                        console.error("Failed to fetch secure database:", response.status);
+                        resolve(result.problemDatabase || null);
+                        return;
+                    }
+
                     const freshData = await response.json();
-                    
                     chrome.storage.local.set({ 'problemDatabase': freshData, 'lastFetch': now });
                     resolve(freshData);
                 } catch (error) {
@@ -475,7 +497,8 @@ document.addEventListener('DOMContentLoaded', () => {
             targetSpace.textContent = data.targetSpace;
 
             const freeCompany  = data.companies && data.companies[0] ? formatName(data.companies[0]) : "Standard";
-            const hiddenCount  = data.companies ? (data.companies.length - 1) : 0;
+            // THE FIX: Cleanly read the lockedCount from the server if it exists!
+            const hiddenCount  = data.lockedCount !== undefined ? data.lockedCount : (data.companies ? data.companies.length - 1 : 0);
             
             if (globalIsPremium) {
                 companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
@@ -538,7 +561,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                         if (vData.success) {
                                             await window.upgradeUserToPremium(user.uid);
                                             globalIsPremium = true; 
-                                            companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
+                                            // Force a fetch context to reload UI
+                                            fetchContext(); 
                                             paymentContainer.remove(); 
                                         } else {
                                             payActionBtn.innerText = "Verify Payment";
@@ -550,7 +574,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                 payActionBtn.innerText = "Connecting...";
                                 try {
-                                    const bodyData = { promo_code: promoInput.value.trim() };
+                                    const bodyData = { 
+                                        promo_code: promoInput.value.trim(),
+                                        uid: user.uid // <-- THE FIX: SENDING UID TO BACKEND
+                                    };
                                     const response = await fetch('http://localhost:3000/create-order', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -569,6 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                     payActionBtn.style.color = "#ffffff";
                                     promoInput.style.display = "none"; 
                                 } catch (error) {
+                                    console.error("Payment Connection Error:", error);
+                                    alert("Could not connect to the payment server. Please ensure your localhost:3000 backend is running!");
                                     payActionBtn.innerText = "Proceed to Pay";
                                 }
                             });
@@ -753,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     if (isPremium) {
                         globalIsPremium = true; 
-                        tabCompany.click(); // Re-trigger tab click to clear lock and render data
+                        tabCompany.click(); 
                     } else {
                         btn.style.display = "none";
                         const paymentContainer = document.createElement('div');
@@ -792,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     if (vData.success) {
                                         await window.upgradeUserToPremium(user.uid);
                                         globalIsPremium = true; 
-                                        tabCompany.click(); // Re-trigger tab click to clear lock and render data
+                                        tabCompany.click(); 
                                     } else {
                                         payActionBtn.innerText = "Verify Payment";
                                         alert("Payment not completed yet.");
@@ -803,7 +832,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             payActionBtn.innerText = "Connecting...";
                             try {
-                                const bodyData = { promo_code: promoInput.value.trim() };
+                                const bodyData = { 
+                                    promo_code: promoInput.value.trim(),
+                                    uid: user.uid // <-- THE FIX: SENDING UID TO BACKEND
+                                };
                                 const response = await fetch('http://localhost:3000/create-order', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -822,6 +854,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 payActionBtn.style.color = "#ffffff";
                                 promoInput.style.display = "none"; 
                             } catch (error) {
+                                console.error("Payment Connection Error:", error);
+                                alert("Could not connect to the payment server. Please ensure your localhost:3000 backend is running!");
                                 payActionBtn.innerText = "Proceed to Pay";
                             }
                         });
@@ -852,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- CSS GRID COMPANY PREP RENDERING ENGINE (WITH SVG AUTO-SYNC CHECKMARKS & ZEBRA STRIPING) ---
+    // --- CSS GRID COMPANY PREP RENDERING ENGINE ---
     async function renderCompanyQuestions() {
         if (!globalIsPremium) return;
 
