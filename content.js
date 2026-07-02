@@ -42,11 +42,66 @@ const observer = new MutationObserver((mutations) => {
 // Start watching the page
 observer.observe(document.body, { childList: true, subtree: true });
 
-// --- MESSAGE LISTENER ---
+// --- THEME INJECTOR ---
+const THEMES = {
+    "monokai": `
+        :root {
+            --lc-color-global-bg: #272822 !important;
+            --lc-color-global-text: #f8f8f2 !important;
+            --lc-color-layer-1: #1e1f1c !important;
+            --lc-color-layer-2: #272822 !important;
+            --lc-color-fill-3: #3e3d32 !important;
+        }
+    `,
+    "github": `
+        :root {
+            --lc-color-global-bg: #0d1117 !important;
+            --lc-color-global-text: #c9d1d9 !important;
+            --lc-color-layer-1: #010409 !important;
+            --lc-color-layer-2: #161b22 !important;
+            --lc-color-fill-3: #21262d !important;
+        }
+    `,
+    "dracula": `
+        :root {
+            --lc-color-global-bg: #282a36 !important;
+            --lc-color-global-text: #f8f8f2 !important;
+            --lc-color-layer-1: #191a21 !important;
+            --lc-color-layer-2: #282a36 !important;
+            --lc-color-fill-3: #44475a !important;
+        }
+    `
+};
+
+function applyTheme(themeName) {
+    let styleTag = document.getElementById('ai-mentor-theme');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'ai-mentor-theme';
+        document.head.appendChild(styleTag);
+    }
+    
+    if (themeName === "default" || !THEMES[themeName]) {
+        styleTag.innerHTML = '';
+    } else {
+        styleTag.innerHTML = THEMES[themeName];
+    }
+}
+
+// --- UPDATED MESSAGE LISTENER ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "GET_PROBLEM") {
-        console.log("Side Panel requested context. Sending data...");
         sendResponse(getProblemContext());
+    } else if (request.action === "APPLY_THEME") {
+        applyTheme(request.theme);
+        sendResponse({ success: true });
+    } else if (request.action === "FORMAT_CODE") {
+        // Placeholder for our upcoming formatter logic
+        console.log("Formatting request received...");
+        setTimeout(() => {
+            sendResponse({ success: true });
+        }, 1000);
+        return true; 
     }
     return true; 
 });

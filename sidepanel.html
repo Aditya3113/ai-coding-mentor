@@ -176,43 +176,6 @@
     .tag-locked:hover { background: var(--paywall); color: #000; }
     .tag-locked svg { width: 10px; height: 10px; }
 
-    /* List Items */
-    .list-item-card {
-      background: var(--inset-bg);
-      border: 1px solid var(--border);
-      border-left: 3px solid transparent;
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      transition: transform 0.25s ease, border-color 0.25s ease, background-color 0.25s ease;
-    }
-    .list-item-card:last-child {
-      margin-bottom: 0;
-    }
-    .list-item-card:hover {
-      transform: translateX(4px);
-      border-color: var(--border);
-      border-left-color: var(--accent);
-      background: var(--hover-bg);
-    }
-    .item-number {
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      padding: 2px 6px;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
-    .item-text {
-      color: var(--text-main);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
     #idleState { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 13px; }
     #dashboardState { display: none; flex-direction: column; }
   </style>
@@ -245,21 +208,29 @@
     <button id="tabCompany" style="flex: 1; padding: 10px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: bold; transition: 0.2s;">Company Prep</button>
   </div>
 
+  <!-- THE UTILITY BAR -->
+  <div class="utility-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel-bg);">
+      <div style="display: flex; gap: 8px;">
+          <select id="themeSelect" style="padding: 6px 10px; background: var(--inset-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
+              <option value="default">Default Theme</option>
+              <option value="monokai">Monokai Dark</option>
+              <option value="github">GitHub Dark</option>
+          </select>
+      </div>
+      <button id="btnFormatCode" style="padding: 6px 12px; background: transparent; color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          Format Code
+      </button>
+  </div>
+
   <div id="companyPrepState" style="display: none; padding: 15px;">
     <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
         <select id="companySelect" style="flex: 1; min-width: 100px; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">
             <option value="">Select Company...</option>
-            <option value="Google">Google</option>
-            <option value="Amazon">Amazon</option>
-            <option value="Microsoft">Microsoft</option>
-            <option value="Facebook">Facebook</option>
         </select>
         
         <select id="topicSelect" style="flex: 1; min-width: 100px; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">
             <option value="All">All Topics</option>
-            <option value="Array">Array</option>
-            <option value="Hash Table">Hash Table</option>
-            <option value="Sorting">Sorting</option>
         </select>
 
         <select id="sortSelect" style="width: 100%; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">

@@ -126,6 +126,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTimerRunning = false;
     let globalDatabaseArray = [];
 
+    // --- UTILITY BAR: THEMES & FORMATTING ---
+    const themeSelect = document.getElementById('themeSelect');
+    const btnFormatCode = document.getElementById('btnFormatCode');
+
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (e) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0] && tabs[0].url.includes("leetcode.com/problems/")) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "APPLY_THEME", theme: e.target.value });
+                }
+            });
+        });
+    }
+
+    if (btnFormatCode) {
+        btnFormatCode.addEventListener('click', () => {
+            btnFormatCode.innerHTML = "Formatting...";
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0] && tabs[0].url.includes("leetcode.com/problems/")) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "FORMAT_CODE" }, (response) => {
+                        setTimeout(() => {
+                            btnFormatCode.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Format Code`;
+                        }, 800);
+                    });
+                }
+            });
+        });
+    }
+
+
     // --- SECURE CLOUD DATABASE FETCH ---
     async function getDatabase() {
         return new Promise((resolve) => {
@@ -469,7 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const freeCompany  = data.companies && data.companies[0] ? formatName(data.companies[0]) : "Standard";
-            // Calculate hidden count directly from the raw array
             const hiddenCount  = data.companies ? data.companies.length - 1 : 0;
             
             if (globalIsPremium) {
@@ -849,7 +878,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Helper for case-insensitive frequency lookup
         const getFreq = (problem, companyName) => {
             if (!problem.companyFrequencies) return 0;
             const matchedKey = Object.keys(problem.companyFrequencies).find(k => k.toLowerCase() === companyName.toLowerCase());
