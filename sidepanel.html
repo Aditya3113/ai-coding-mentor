@@ -162,16 +162,6 @@
     }
     .accordion-item.active .accordion-content { display: block; }
 
-    /* Target Trackers */
-    .metrics { display: flex; gap: 8px; margin-top: 4px; }
-    .metric-box {
-      flex: 1; background: var(--inset-bg); padding: 8px 10px;
-      border-radius: 4px; border: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .metric-label { font-size: 12px; color: var(--text-muted); }
-    .metric-val { font-size: 13px; font-weight: 600; font-family: monospace; color: var(--accent); }
-
     /* Companies Tags */
     .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
     .tag-free {
@@ -324,31 +314,6 @@
           <div class="tags" id="companyTags"></div>
         </div>
       </div>
-
-      <div class="accordion-item">
-        <div class="accordion-header">
-          <div class="header-left">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            <span>Optimal Targets</span>
-          </div>
-          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </div>
-        <div class="accordion-content">
-          <div class="metrics">
-            <div class="metric-box">
-              <span class="metric-label">Time</span>
-              <span class="metric-val" id="targetTime">O(?)</span>
-            </div>
-            <div class="metric-box">
-              <span class="metric-label">Space</span>
-              <span class="metric-val" id="targetSpace">O(?)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="dynamicHintsContainer"></div>
-      <div id="dynamicEdgeCasesContainer"></div>
 
     </div>
   </div>
