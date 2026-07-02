@@ -90,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- ACCORDION LOGIC ---
     document.addEventListener('click', (e) => {
         const header = e.target.closest('.accordion-header');
         if (header) {
@@ -116,29 +115,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerToggleBtn  = document.getElementById('timerToggleBtn');
     const timerResetBtn   = document.getElementById('timerResetBtn');
 
-    const companyTags        = document.getElementById('companyTags');
-    const targetTime         = document.getElementById('targetTime');
-    const targetSpace        = document.getElementById('targetSpace');
-    const dynamicHintsContainer = document.getElementById('dynamicHintsContainer');
-    const dynamicEdgeCasesContainer = document.getElementById('dynamicEdgeCasesContainer');
-
-    const companySelect = document.getElementById('companySelect');
-    const topicSelect = document.getElementById('topicSelect');
-    const sortSelect = document.getElementById('sortSelect');
-    const questionList = document.getElementById('questionList');
+    const companyTags     = document.getElementById('companyTags');
+    const companySelect   = document.getElementById('companySelect');
+    const topicSelect     = document.getElementById('topicSelect');
+    const sortSelect      = document.getElementById('sortSelect');
+    const questionList    = document.getElementById('questionList');
 
     let timerInterval = null;
     let timerSecondsRemaining = 0;
     let isTimerRunning = false;
     let globalDatabaseArray = [];
 
-
     // --- SECURE CLOUD DATABASE FETCH ---
     async function getDatabase() {
         return new Promise((resolve) => {
             chrome.storage.local.get(['problemDatabase', 'lastFetch'], async (result) => {
                 const now = new Date().getTime();
-                const oneDay = 0; // Keep at 0 for dev testing
+                const oneDay = 0; 
                 
                 if (result.problemDatabase && result.lastFetch && (now - result.lastFetch < oneDay)) {
                     resolve(result.problemDatabase);
@@ -184,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- UI HELPER: PREMIUM COMPANY FORMATTER ---
     const COMPANY_DISPLAY_NAMES = {
         "1kosmos": "1Kosmos", "6sense": "6sense", "accelya": "Accelya", "accenture": "Accenture",
         "accolite": "Accolite", "acko": "ACKO", "acorns": "Acorns", "activision": "Activision",
@@ -415,23 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- DYNAMIC TOP-LEVEL ACCORDION GENERATOR ---
-    function createTopLevelAccordion(title, content, iconSvg) {
-        const item = document.createElement('div');
-        item.className = 'accordion-item';
-        item.innerHTML = `
-            <div class="accordion-header">
-                <div class="header-left">
-                    ${iconSvg}
-                    <span>${title}</span>
-                </div>
-                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
-            <div class="accordion-content">${content}</div>
-        `;
-        return item;
-    }
-
     function resetToIdleState() {
         dashboardState.style.display = 'none';
         lockdownState.style.display = 'none';
@@ -493,12 +468,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateTimerDisplay();
             }
             
-            targetTime.textContent  = data.targetTime;
-            targetSpace.textContent = data.targetSpace;
-
             const freeCompany  = data.companies && data.companies[0] ? formatName(data.companies[0]) : "Standard";
-            // THE FIX: Cleanly read the lockedCount from the server if it exists!
-            const hiddenCount  = data.lockedCount !== undefined ? data.lockedCount : (data.companies ? data.companies.length - 1 : 0);
+            // Calculate hidden count directly from the raw array
+            const hiddenCount  = data.companies ? data.companies.length - 1 : 0;
             
             if (globalIsPremium) {
                 companyTags.innerHTML = data.companies.map(c => `<div class="tag-free">${formatName(c)}</div>`).join('');
@@ -561,7 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                         if (vData.success) {
                                             await window.upgradeUserToPremium(user.uid);
                                             globalIsPremium = true; 
-                                            // Force a fetch context to reload UI
                                             fetchContext(); 
                                             paymentContainer.remove(); 
                                         } else {
@@ -576,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 try {
                                     const bodyData = { 
                                         promo_code: promoInput.value.trim(),
-                                        uid: user.uid // <-- THE FIX: SENDING UID TO BACKEND
+                                        uid: user.uid 
                                     };
                                     const response = await fetch('http://localhost:3000/create-order', {
                                         method: 'POST',
@@ -609,26 +580,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 companyTags.innerHTML = `<div class="tag-free">${freeCompany}</div>`;
             }
-
-            // POPULATE TOP LEVEL HINTS
-            dynamicHintsContainer.innerHTML = '';
-            const hintIcon = `<svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.07 1.5 3.5.76.76 1.21 1.5 1.41 2.5"></path></svg>`;
-            if (data.hints && data.hints.length > 0) {
-                data.hints.forEach((hint, i) => {
-                    dynamicHintsContainer.appendChild(createTopLevelAccordion(`Hint ${i + 1}`, hint, hintIcon));
-                });
-            }
-
-            // POPULATE TOP LEVEL EDGE CASES
-            dynamicEdgeCasesContainer.innerHTML = '';
-            const edgeIcon = `<svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-            if (data.edgeCases && data.edgeCases.length > 0) {
-                data.edgeCases.forEach((ec, i) => {
-                    const formattedEc = `<code style="font-family:monospace;font-size:12px; color: var(--accent);">${ec}</code>`;
-                    dynamicEdgeCasesContainer.appendChild(createTopLevelAccordion(`Edge Case ${i + 1}`, formattedEc, edgeIcon));
-                });
-            }
-
         } else {
             headerTitle.textContent = title;
             dashboardState.style.display = 'none';
@@ -706,7 +657,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DYNAMIC DROPDOWN GENERATORS ---
     function populateCompanyDropdown() {
+        companySelect.innerHTML = `<option value="" disabled selected>Select a Company...</option>`;
         const uniqueCompanies = new Set();
+        
         globalDatabaseArray.forEach(p => {
             if (p.companies) {
                 p.companies.forEach(c => uniqueCompanies.add(c.toLowerCase()));
@@ -714,8 +667,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const sortedCompanies = Array.from(uniqueCompanies).sort();
-        companySelect.innerHTML = `<option value="" disabled selected>Select a Company...</option>`;
-
         sortedCompanies.forEach(company => {
             const option = document.createElement('option');
             option.value = company; 
@@ -751,7 +702,6 @@ document.addEventListener('DOMContentLoaded', () => {
         activeProblemContainer.style.display = 'none';
         companyPrepState.style.display = 'block';
 
-        // --- PREMIUM GATEKEEPER CHECK ---
         if (!globalIsPremium) {
             companySelect.disabled = true;
             topicSelect.disabled = true;
@@ -834,7 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             try {
                                 const bodyData = { 
                                     promo_code: promoInput.value.trim(),
-                                    uid: user.uid // <-- THE FIX: SENDING UID TO BACKEND
+                                    uid: user.uid 
                                 };
                                 const response = await fetch('http://localhost:3000/create-order', {
                                     method: 'POST',
@@ -899,18 +849,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Fetch solved problems from storage
+        // Helper for case-insensitive frequency lookup
+        const getFreq = (problem, companyName) => {
+            if (!problem.companyFrequencies) return 0;
+            const matchedKey = Object.keys(problem.companyFrequencies).find(k => k.toLowerCase() === companyName.toLowerCase());
+            return matchedKey ? problem.companyFrequencies[matchedKey] : 0;
+        };
+
         const storage = await new Promise(resolve => chrome.storage.local.get(['solvedProblems'], resolve));
         const solvedList = storage.solvedProblems || [];
 
-        let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.includes(selectedCompany));
+        let filtered = globalDatabaseArray.filter(p => p.companies && p.companies.some(c => c.toLowerCase() === selectedCompany.toLowerCase()));
+        
         if (selectedTopic !== "All") filtered = filtered.filter(p => p.topics && p.topics.includes(selectedTopic));
 
         filtered.sort((a, b) => {
             if (selectedSort === 'freq-desc') {
-                const freqA = (a.companyFrequencies && a.companyFrequencies[selectedCompany]) ? a.companyFrequencies[selectedCompany] : 0;
-                const freqB = (b.companyFrequencies && b.companyFrequencies[selectedCompany]) ? b.companyFrequencies[selectedCompany] : 0;
-                return freqB - freqA;
+                return getFreq(b, selectedCompany) - getFreq(a, selectedCompany);
             }
             const diffWeight = { "Easy": 1, "Medium": 2, "Hard": 3 };
             const weightA = diffWeight[a.difficulty] || 0;
@@ -939,16 +894,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const problemUrl = q.url || `https://leetcode.com/problems/${q.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`;
 
-            const rawFreq = q.companyFrequencies ? q.companyFrequencies[selectedCompany] : undefined;
-            const displayFreq = rawFreq !== undefined ? `${rawFreq.toFixed(1)}%` : '-';
+            const rawFreq = getFreq(q, selectedCompany);
+            const displayFreq = rawFreq > 0 ? `${rawFreq.toFixed(1)}%` : '-';
 
-            // Auto-Sync SVG Checkmark Logic
             const isSolved = solvedList.includes(q.title);
             const successSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="#2ea043" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
             const emptySpace = `<div style="width: 14px; flex-shrink: 0;"></div>`;
             const checkmark = isSolved ? successSvg : emptySpace;
 
-            // Zebra Striping (Alternating row backgrounds)
             const rowBg = index % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.03)";
 
             return `
@@ -975,7 +928,6 @@ document.addEventListener('DOMContentLoaded', () => {
     topicSelect.addEventListener('change', renderCompanyQuestions);
     sortSelect.addEventListener('change', renderCompanyQuestions);
 
-    // --- HISTORICAL AUTO-SYNC ENGINE ---
     async function syncHistoricalLeetCodeData() {
         try {
             const response = await fetch('https://leetcode.com/api/problems/algorithms/');
@@ -1007,5 +959,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initAuth();
     syncHistoricalLeetCodeData();
-
 });
