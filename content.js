@@ -25,50 +25,56 @@ function getProblemContext() {
 
 // --- NEW AUTO-TRACKER OBSERVER ---
 const observer = new MutationObserver((mutations) => {
-    // This class selector is the current standard for the LeetCode success banner
     const successElement = document.querySelector('.success__3Ai7'); 
-    
     if (successElement) {
         const titleElement = document.querySelector('[data-cy="question-title"]');
         if (titleElement) {
             const title = titleElement.innerText.trim();
-            // Send the solved problem title to the background script
             chrome.runtime.sendMessage({ action: "PROBLEM_SOLVED", title: title });
             console.log("AI Coding Mentor: Success detected! Syncing solution...");
         }
     }
 });
-
-// Start watching the page
 observer.observe(document.body, { childList: true, subtree: true });
 
-// --- THEME INJECTOR ---
+// --- THEME INJECTOR (Aggressive Monaco Overrides) ---
 const THEMES = {
     "monokai": `
         :root {
-            --lc-color-global-bg: #272822 !important;
-            --lc-color-global-text: #f8f8f2 !important;
-            --lc-color-layer-1: #1e1f1c !important;
-            --lc-color-layer-2: #272822 !important;
-            --lc-color-fill-3: #3e3d32 !important;
+            --bg-default: #272822 !important;
+            --layer-1: #1e1f1c !important;
+            --layer-2: #272822 !important;
+        }
+        .monaco-editor, 
+        .monaco-editor-background, 
+        .monaco-editor .margin,
+        .monaco-editor .margin-view-overlays,
+        .monaco-editor .monaco-scrollable-element,
+        .monaco-editor .overflow-guard,
+        .monaco-editor .view-lines,
+        .monaco-editor .view-overlays,
+        .monaco-editor .current-line {
+            background-color: #272822 !important;
+            background: #272822 !important;
         }
     `,
     "github": `
         :root {
-            --lc-color-global-bg: #0d1117 !important;
-            --lc-color-global-text: #c9d1d9 !important;
-            --lc-color-layer-1: #010409 !important;
-            --lc-color-layer-2: #161b22 !important;
-            --lc-color-fill-3: #21262d !important;
+            --bg-default: #0d1117 !important;
+            --layer-1: #010409 !important;
+            --layer-2: #161b22 !important;
         }
-    `,
-    "dracula": `
-        :root {
-            --lc-color-global-bg: #282a36 !important;
-            --lc-color-global-text: #f8f8f2 !important;
-            --lc-color-layer-1: #191a21 !important;
-            --lc-color-layer-2: #282a36 !important;
-            --lc-color-fill-3: #44475a !important;
+        .monaco-editor, 
+        .monaco-editor-background, 
+        .monaco-editor .margin,
+        .monaco-editor .margin-view-overlays,
+        .monaco-editor .monaco-scrollable-element,
+        .monaco-editor .overflow-guard,
+        .monaco-editor .view-lines,
+        .monaco-editor .view-overlays,
+        .monaco-editor .current-line {
+            background-color: #0d1117 !important;
+            background: #0d1117 !important;
         }
     `
 };
@@ -86,9 +92,41 @@ function applyTheme(themeName) {
     } else {
         styleTag.innerHTML = THEMES[themeName];
     }
+    console.log(`Applied Theme: ${themeName}`);
 }
 
-// --- UPDATED MESSAGE LISTENER ---
+// --- SMART FORMATTER ---
+function handleFormatting() {
+    console.log("Searching for LeetCode format button...");
+    
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const formatBtn = buttons.find(b => {
+        const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+        const tooltip = (b.getAttribute('data-tooltip-content') || '').toLowerCase();
+        const tooltipId = (b.getAttribute('data-tooltip-id') || '').toLowerCase();
+        return aria.includes('format') || tooltip.includes('format') || tooltipId.includes('format');
+    });
+
+    if (formatBtn) {
+        formatBtn.click();
+        console.log("Format button clicked successfully!");
+    } else {
+        console.log("Format button not found in UI. Simulating keyboard shortcut...");
+        const editorDiv = document.querySelector('.monaco-editor') || document.activeElement;
+        if (editorDiv) {
+            editorDiv.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'f',
+                code: 'KeyF',
+                keyCode: 70,
+                shiftKey: true,
+                altKey: true,
+                bubbles: true
+            }));
+        }
+    }
+}
+
+// --- MESSAGE LISTENER ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "GET_PROBLEM") {
         sendResponse(getProblemContext());
@@ -96,12 +134,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         applyTheme(request.theme);
         sendResponse({ success: true });
     } else if (request.action === "FORMAT_CODE") {
-        // Placeholder for our upcoming formatter logic
-        console.log("Formatting request received...");
-        setTimeout(() => {
-            sendResponse({ success: true });
-        }, 1000);
-        return true; 
+        handleFormatting();
+        sendResponse({ success: true });
     }
     return true; 
 });
