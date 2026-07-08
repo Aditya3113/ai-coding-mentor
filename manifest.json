@@ -15,7 +15,7 @@
     "https://leetcode.com/*"
   ],
   "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_path": "sidepanel/sidepanel.html"
   },
   "background": {
     "service_worker": "background.js"
