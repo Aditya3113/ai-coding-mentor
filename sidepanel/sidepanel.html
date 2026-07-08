@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prep Mentor Dashboard</title>
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --panel-bg: #1a1a1a;
+      --inset-bg: #262626;
+      --border: #3e3e42;
+      --text-main: #eff1f6;
+      --text-muted: #8a8a8a;
+      --accent: #2cbb5d;
+      --paywall: #ffa116;
+      --paywall-bg: rgba(255, 161, 22, 0.1);
+      --hover-bg: rgba(255, 255, 255, 0.04);
+      --diff-easy: #2cbb5d;
+      --diff-medium: #ffa116;
+      --diff-hard: #ef4743;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    .header {
+      padding: 12px 20px;
+      background-color: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .problem-title {
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .difficulty-badge {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 1px 6px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .difficulty-badge.Easy   { color: var(--diff-easy);   background: rgba(44,187,93,0.1); }
+    .difficulty-badge.Medium { color: var(--diff-medium);  background: rgba(255,161,22,0.1); }
+    .difficulty-badge.Hard   { color: var(--diff-hard);   background: rgba(239,71,67,0.1); }
+
+    /* Dropdown UI Lockout */
+    .profile-container {
+      position: relative;
+    }
+    .profile-dropdown {
+      display: none;
+      position: absolute;
+      top: 40px; 
+      right: 0;
+      background-color: #161b22;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+      width: 190px;
+      z-index: 9999;
+    }
+    .dropdown-btn {
+      width: 100%; 
+      text-align: left; 
+      background: transparent; 
+      border: none;
+      color: var(--diff-hard); 
+      padding: 10px 12px; 
+      cursor: pointer;
+      font-size: 13px; 
+      font-weight: 600;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+      transition: background-color 0.2s;
+    }
+    .dropdown-btn:hover { background-color: rgba(239, 71, 67, 0.1); }
+
+    /* Accordion */
+    .accordion-item {
+      background-color: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .accordion-header {
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease;
+    }
+    .accordion-header:hover { background-color: var(--hover-bg); }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 15px;
+      transition: color 0.15s ease;
+    }
+    .accordion-header:hover .header-left,
+    .accordion-item.active .header-left { color: var(--text-main); }
+
+    .header-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      stroke: currentColor;
+    }
+
+    .accordion-item.locked .header-left,
+    .accordion-item.locked.active .header-left,
+    .accordion-item.locked .accordion-header:hover .header-left { color: var(--paywall); }
+
+    .chevron {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      stroke: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    .accordion-item.active .chevron {
+      transform: rotate(180deg);
+      stroke: var(--text-main);
+    }
+
+    .accordion-content {
+      display: none;
+      padding: 0 20px 16px 20px;
+    }
+    .accordion-item.active .accordion-content { display: block; }
+
+    /* Companies Tags */
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .tag-free {
+      background: var(--inset-bg); border: 1px solid var(--border);
+      color: var(--text-main); padding: 2px 8px; border-radius: 12px; font-size: 12px;
+    }
+    .tag-locked {
+      background: var(--paywall-bg); color: var(--paywall); border: 1px solid var(--paywall);
+      padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; gap: 4px;
+    }
+    .tag-locked:hover { background: var(--paywall); color: #000; }
+    .tag-locked svg { width: 10px; height: 10px; }
+
+    #idleState { text-align: center; padding: 30px 20px; color: var(--text-muted); font-size: 13px; }
+    #dashboardState { display: none; flex-direction: column; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-title-group">
+      <span class="problem-title" id="headerTitle">Prep Dashboard</span>
+      <span class="difficulty-badge" id="difficultyBadge" style="display:none"></span>
+    </div>
+    
+    <div class="profile-container" id="profileContainer">
+        <div id="authProfileBtn" style="width: 28px; height: 28px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b949e; transition: 0.2s; font-weight: bold; font-size: 14px;" title="Sign In">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        
+        <div id="profileDropdown" class="profile-dropdown">
+            <div style="padding: 12px; border-bottom: 1px solid var(--border);">
+                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Signed in as</div>
+                <div id="dropdownEmail" style="font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+            </div>
+            <button id="signOutBtn" class="dropdown-btn">Sign Out</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs" style="display: flex; border-bottom: 1px solid #30363d; margin-bottom: 0px;">
+    <button id="tabActive" style="flex: 1; padding: 10px; background: transparent; color: #fff; border: none; border-bottom: 2px solid #ff9800; cursor: pointer; font-weight: bold; transition: 0.2s;">Active Problem</button>
+    <button id="tabCompany" style="flex: 1; padding: 10px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: bold; transition: 0.2s;">Company Prep</button>
+  </div>
+
+  <!-- THE UTILITY BAR -->
+  <div class="utility-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel-bg);">
+      <div style="display: flex; gap: 8px;">
+          <select id="themeSelect" style="padding: 6px 10px; background: var(--inset-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
+              <option value="default">Default Theme</option>
+              <option value="monokai">Monokai Dark</option>
+              <option value="github">GitHub Dark</option>
+          </select>
+      </div>
+      <button id="btnFormatCode" style="padding: 6px 12px; background: transparent; color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s ease;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          Format Code
+      </button>
+  </div>
+
+  <div id="companyPrepState" style="display: none; padding: 15px;">
+    <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+        <select id="companySelect" style="flex: 1; min-width: 100px; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">
+            <option value="">Select Company...</option>
+        </select>
+        
+        <select id="topicSelect" style="flex: 1; min-width: 100px; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">
+            <option value="All">All Topics</option>
+        </select>
+
+        <select id="sortSelect" style="width: 100%; padding: 6px; background: #161b22; color: #fff; border: 1px solid #30363d; border-radius: 4px;">
+            <option value="freq-desc">Frequency (High to Low)</option>
+            <option value="diff-asc">Difficulty (Easy to Hard)</option>
+            <option value="diff-desc">Difficulty (Hard to Easy)</option>
+        </select>
+    </div>
+
+    <div id="questionList" style="display: flex; flex-direction: column; gap: 8px;">
+        <p style="color: #8b949e; text-align: center; font-size: 13px; margin-top: 20px;">Select a company to view problems.</p>
+    </div>
+  </div>
+
+  <div id="activeProblemContainer">
+    
+    <div id="idleState">
+      <p>Waiting for LeetCode problem...</p>
+    </div>
+
+    <div id="lockdownState" style="display: none; text-align: center; padding: 50px 20px; color: #ef4743;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 50px; height: 50px; margin-bottom: 16px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <h2 style="margin: 0 0 10px 0; font-size: 18px;">Contest Mode Active</h2>
+        <p style="color: #8b949e; font-size: 13px; margin: 0;">Extension disabled to enforce fair play.<br>Focus up and good luck!</p>
+    </div>
+
+    <div id="dashboardState">
+        
+      <div class="timer-container" style="display: flex; align-items: center; justify-content: space-between; background: var(--panel-bg); padding: 16px 20px; border-bottom: 1px solid var(--border);">
+          <div style="display: flex; align-items: center; gap: 12px;">
+              <div id="pressureTimer" style="font-size: 24px; font-weight: bold; color: #eff1f6; font-family: monospace; tabular-nums; line-height: 1;">00:00</div>
+              <div style="display: flex; align-items: center; gap: 4px; border-left: 1px solid var(--border); padding-left: 12px;">
+                  <input type="number" id="timerInput" value="30" min="1" max="180" style="width: 45px; padding: 4px; background: var(--inset-bg); color: #fff; border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 12px; outline: none;" />
+                  <span style="color: var(--text-muted); font-size: 12px;">min</span>
+              </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+              <button id="timerToggleBtn" style="padding: 6px 14px; background: var(--border); color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: background 0.2s;">Start</button>
+              <button id="timerResetBtn" style="padding: 6px 10px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 12px; transition: color 0.2s;">Reset</button>
+          </div>
+      </div>
+
+      <div class="accordion-item locked active">
+        <div class="accordion-header">
+          <div class="header-left">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Companies</span>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div class="accordion-content">
+          <div class="tags" id="companyTags"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/auth/firebase-app.js"></script>
+  <script src="/auth/firebase-auth.js"></script>
+  <script src="/auth/firebase-firestore.js"></script>
+  <script src="/auth/auth.js"></script>
+
+  <script src="/sidepanel/state.js"></script>
+  <script src="/sidepanel/api.js"></script>
+  <script src="/sidepanel/ui.js"></script>
+  <script src="/sidepanel/main.js"></script>
+</body>
+</html>

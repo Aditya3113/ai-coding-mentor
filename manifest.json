@@ -1,36 +1,37 @@
 {
-    "manifest_version": 3,
-    "name": "AI Coding Mentor",
-    "version": "1.0.0",
-    "description": "Your Socratic AI coding coach for competitive programming.",
-    "permissions": [
+  "manifest_version": 3,
+  "name": "AI Coding Mentor",
+  "version": "1.0",
+  "description": "Your AI assistant for interview prep.",
+  "permissions": [
     "sidePanel",
-    "activeTab",
+    "tabs",
     "scripting",
-    "storage"
-    ],
-    "host_permissions": [
-    "*://*.leetcode.com/*",
-    "*://*.codeforces.com/*",
-    "*://*.codechef.com/*"
-    ],
-    "background": {
-      "service_worker": "background.js"
-    },
-    "side_panel": {
-      "default_path": "sidepanel.html"
-    },
-    "action": {
-      "default_title": "Open Mentor Workspace"
-    },
-    "content_scripts": [
-      {
-        "matches": [
-          "*://leetcode.com/problems/*",
-          "*://*.codeforces.com/*",
-          "*://www.codechef.com/*"
-        ],
-        "js": ["content.js"]
-      }
-    ]
-  }
+    "storage",
+    "identity",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*"
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Mentor"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://leetcode.com/problems/*"],
+      "js": [
+        "content/tracker.js",
+        "content/themes.js",
+        "content/formatter.js",
+        "content/content.js"
+      ]
+    }
+  ]
+}
