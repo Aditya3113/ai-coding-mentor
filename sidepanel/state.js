@@ -43,3 +43,12 @@ const questionList = document.getElementById('questionList');
 // Utility Bar
 const themeSelect = document.getElementById('themeSelect');
 const btnFormatCode = document.getElementById('btnFormatCode');
+
+// Settings UI
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const ghTokenInput = document.getElementById('ghTokenInput');
+const ghRepoInput = document.getElementById('ghRepoInput');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const settingsSaveStatus = document.getElementById('settingsSaveStatus');

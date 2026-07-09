@@ -188,17 +188,23 @@
       <span class="difficulty-badge" id="difficultyBadge" style="display:none"></span>
     </div>
     
-    <div class="profile-container" id="profileContainer">
-        <div id="authProfileBtn" style="width: 28px; height: 28px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b949e; transition: 0.2s; font-weight: bold; font-size: 14px;" title="Sign In">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        </div>
-        
-        <div id="profileDropdown" class="profile-dropdown">
-            <div style="padding: 12px; border-bottom: 1px solid var(--border);">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Signed in as</div>
-                <div id="dropdownEmail" style="font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <button id="settingsBtn" style="background: transparent; border: none; color: #8b949e; cursor: pointer; padding: 0; display: flex; transition: 0.2s;" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
+
+        <div class="profile-container" id="profileContainer">
+            <div id="authProfileBtn" style="width: 28px; height: 28px; border-radius: 50%; background: #30363d; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #8b949e; transition: 0.2s; font-weight: bold; font-size: 14px;" title="Sign In">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
-            <button id="signOutBtn" class="dropdown-btn">Sign Out</button>
+            
+            <div id="profileDropdown" class="profile-dropdown">
+                <div style="padding: 12px; border-bottom: 1px solid var(--border);">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Signed in as</div>
+                    <div id="dropdownEmail" style="font-size: 13px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</div>
+                </div>
+                <button id="signOutBtn" class="dropdown-btn">Sign Out</button>
+            </div>
         </div>
     </div>
   </div>
@@ -208,7 +214,6 @@
     <button id="tabCompany" style="flex: 1; padding: 10px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-weight: bold; transition: 0.2s;">Company Prep</button>
   </div>
 
-  <!-- THE UTILITY BAR -->
   <div class="utility-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel-bg);">
       <div style="display: flex; gap: 8px;">
           <select id="themeSelect" style="padding: 6px 10px; background: var(--inset-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font-size: 12px; outline: none; cursor: pointer;">
@@ -282,21 +287,44 @@
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
         <div class="accordion-content">
-          <div class="tags" id="companyTags"></div>
+            <div class="tags" id="companyTags"></div>
         </div>
       </div>
 
     </div>
   </div>
 
-  <script src="/auth/firebase-app.js"></script>
-  <script src="/auth/firebase-auth.js"></script>
-  <script src="/auth/firebase-firestore.js"></script>
-  <script src="/auth/auth.js"></script>
+  <div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; padding: 20px; box-sizing: border-box; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <h2 style="margin: 0; font-size: 18px; color: #eff1f6;">Configuration</h2>
+          <button id="closeSettingsBtn" style="background: transparent; border: none; color: #8b949e; cursor: pointer; padding: 0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+          <label style="display: block; color: #8a8a8a; font-size: 12px; margin-bottom: 6px; font-weight: 500;">GitHub Personal Access Token (Classic)</label>
+          <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width: 100%; background: var(--inset-bg); border: 1px solid var(--border); color: #eff1f6; padding: 10px; border-radius: 4px; font-family: monospace; outline: none; box-sizing: border-box;" />
+          <div style="font-size: 11px; color: #8b949e; margin-top: 6px;">Requires <b>repo</b> scope. <a href="https://github.com/settings/tokens/new?scopes=repo&description=AI+Coding+Mentor+Sync" target="_blank" style="color: #2cbb5d; text-decoration: none;">Generate token here</a>.</div>
+      </div>
 
-  <script src="/sidepanel/state.js"></script>
-  <script src="/sidepanel/api.js"></script>
-  <script src="/sidepanel/ui.js"></script>
-  <script src="/sidepanel/main.js"></script>
+      <div style="margin-bottom: 24px;">
+          <label style="display: block; color: #8a8a8a; font-size: 12px; margin-bottom: 6px; font-weight: 500;">Target Repository Name</label>
+          <input type="text" id="ghRepoInput" placeholder="LeetCode-Solutions" style="width: 100%; background: var(--inset-bg); border: 1px solid var(--border); color: #eff1f6; padding: 10px; border-radius: 4px; font-family: monospace; outline: none; box-sizing: border-box;" />
+      </div>
+
+      <button id="saveSettingsBtn" style="padding: 10px; background: #2ea043; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;">Save Configuration</button>
+      <div id="settingsSaveStatus" style="color: #2ea043; font-size: 13px; font-weight: 500; margin-top: 12px; text-align: center; display: none;">Settings saved successfully!</div>
+  </div>
+
+  <script src="../auth/firebase-app.js"></script>
+  <script src="../auth/firebase-auth.js"></script>
+  <script src="../auth/firebase-firestore.js"></script>
+  <script src="../auth/auth.js"></script>
+
+  <script src="state.js"></script>
+  <script src="api.js"></script>
+  <script src="ui.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>

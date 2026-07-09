@@ -233,5 +233,43 @@ chrome.runtime.onMessage.addListener((message) => { if (message.action === "SPA_
 chrome.tabs.onActivated.addListener(fetchContext);
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => { if (changeInfo.status === 'complete' && tab.active) fetchContext(); });
 
+// --- SETTINGS MODAL LISTENERS ---
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+        // Fetch existing settings to populate the fields
+        chrome.storage.local.get(['githubToken', 'githubRepo'], (result) => {
+            if (result.githubToken) ghTokenInput.value = result.githubToken;
+            if (result.githubRepo) ghRepoInput.value = result.githubRepo;
+        });
+        settingsModal.style.display = 'flex';
+    });
+}
+
+if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+        settingsSaveStatus.style.display = 'none';
+    });
+}
+
+if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener('click', () => {
+        const token = ghTokenInput.value.trim();
+        const repo = ghRepoInput.value.trim() || 'LeetCode-Solutions'; 
+
+        saveSettingsBtn.innerText = "Saving...";
+        
+        chrome.storage.local.set({ githubToken: token, githubRepo: repo }, () => {
+            settingsSaveStatus.style.display = 'block';
+            saveSettingsBtn.innerText = "Save Configuration";
+            
+            setTimeout(() => {
+                settingsSaveStatus.style.display = 'none';
+                settingsModal.style.display = 'none';
+            }, 1200);
+        });
+    });
+}
+
 initAuth();
 syncHistoricalLeetCodeData();
