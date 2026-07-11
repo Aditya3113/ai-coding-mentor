@@ -123,14 +123,61 @@ function injectGitHubModal(title, code) {
     }
 }
 
-const observer = new MutationObserver(() => {
-    const resultSpan = document.querySelector('[data-e2e-locator="submission-result"]');
-    
-    if (resultSpan && resultSpan.innerText.includes('Accepted')) {
-        if (!document.getElementById('ai-mentor-github-modal')) {
-            const context = getProblemContext();
-            injectGitHubModal(context.title, context.code);
+let modalHandledForCurrentResult = false;
+
+// Reset the "already handled" flag the moment a new submission attempt actually starts,
+// since LeetCode may just swap the result text in place (Accepted -> Judging -> Accepted)
+// without ever removing the element, which the MutationObserver alone can miss.
+function markNewSubmissionAttempt() {
+    modalHandledForCurrentResult = false;
+}
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+    const locator = (btn.getAttribute('data-e2e-locator') || '').toLowerCase();
+    if (aria.includes('submit') || locator.includes('submit')) {
+        markNewSubmissionAttempt();
+    }
+}, true);
+
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        markNewSubmissionAttempt();
+    }
+}, true);
+
+function findAcceptedResultElement() {
+    // Primary: the locator LeetCode has historically used.
+    const primary = document.querySelector('[data-e2e-locator="submission-result"]');
+    if (primary) {
+        return primary.innerText.includes('Accepted') ? primary : null;
+    }
+
+    // Fallback: if that attribute is gone (LeetCode changed their markup), look for a
+    // small leaf element whose text is exactly "Accepted".
+    const candidates = document.querySelectorAll('span, div');
+    for (const el of candidates) {
+        if (el.children.length === 0 && el.innerText && el.innerText.trim() === 'Accepted') {
+            return el;
         }
+    }
+    return null;
+}
+
+const observer = new MutationObserver(() => {
+    const resultEl = findAcceptedResultElement();
+
+    if (!resultEl) {
+        modalHandledForCurrentResult = false;
+        return;
+    }
+
+    if (!modalHandledForCurrentResult && !document.getElementById('ai-mentor-github-modal')) {
+        modalHandledForCurrentResult = true;
+        const context = getProblemContext();
+        injectGitHubModal(context.title, context.code);
     }
 });
 
